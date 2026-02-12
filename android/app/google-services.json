@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "549038065730",
+    "project_id": "devmob-flutter-intra",
+    "storage_bucket": "devmob-flutter-intra.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549038065730:android:d2528cc6405fe1f0a745db",
+        "android_client_info": {
+          "package_name": "com.example.devmobi_flutter_intra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8GiPhRBJvsx9D3aUFhaOGaaFmdjwVmcE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
