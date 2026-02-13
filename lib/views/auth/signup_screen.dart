@@ -99,7 +99,7 @@ class _SignupScreenState extends State<SignupScreen> {
         // Navigate to home screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const FeedScreen()),
         );
       } else {
         if (mounted) {

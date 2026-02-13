@@ -1,1 +1,0 @@
-// GroupDetail screen

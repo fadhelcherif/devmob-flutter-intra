@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // User is logged in, go to home
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const FeedScreen()),
       );
     } else {
       // User is not logged in, go to welcome screen
