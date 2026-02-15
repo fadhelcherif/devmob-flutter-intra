@@ -5,9 +5,17 @@ import 'views/splash/Splash.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  
+  // Initialize Firebase with error handling for hot reload
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase already initialized, safe to continue
+    print('Firebase already initialized: $e');
+  }
+  
   runApp(const MyApp());
 }
 

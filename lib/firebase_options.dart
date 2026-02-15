@@ -46,7 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '549038065730',
     projectId: 'devmob-flutter-intra',
     authDomain: 'devmob-flutter-intra.firebaseapp.com',
-    storageBucket: 'devmob-flutter-intra.firebasestorage.app',
+    storageBucket: 'devmob-flutter-intra.appspot.com',
     measurementId: 'G-PEQM1EWDL7',
   );
 
@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:549038065730:android:d2528cc6405fe1f0a745db',
     messagingSenderId: '549038065730',
     projectId: 'devmob-flutter-intra',
-    storageBucket: 'devmob-flutter-intra.firebasestorage.app',
+    storageBucket: 'devmob-flutter-intra.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
