@@ -20,6 +20,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   UserModel? _user;
   bool _isLoading = true;
 
+  bool get _isOwnProfile {
+    final currentUid = _authService.currentUser?.uid;
+    if (currentUid == null) return false;
+    final viewingUid = widget.userId;
+    return viewingUid == null || viewingUid == currentUid;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +37,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       String uid = widget.userId ?? _authService.currentUser!.uid;
       UserModel? user = await _authService.getUserData(uid);
-      
+
       setState(() {
         _user = user;
         _isLoading = false;
@@ -45,15 +52,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_user == null) {
-      return const Scaffold(
-        body: Center(child: Text('User not found')),
-      );
+      return const Scaffold(body: Center(child: Text('User not found')));
     }
 
     return Scaffold(
@@ -65,27 +68,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
         ),
-        title: const Text(
-          "My Profile",
-          style: TextStyle(
+        title: Text(
+          _isOwnProfile ? 'My Profile' : 'Profile',
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w500,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProfileScreen(user: _user!),
+        actions: _isOwnProfile
+            ? [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfileScreen(user: _user!),
+                      ),
+                    ).then((_) => _loadUser());
+                  },
+                  icon: const Icon(Icons.edit, color: Colors.black),
                 ),
-              ).then((_) => _loadUser());
-            },
-            icon: const Icon(Icons.edit, color: Colors.black),
-          ),
-        ],
+              ]
+            : null,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -118,9 +123,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Text(
                           _user!.role.name.toUpperCase(),
                           style: TextStyle(
-                            color: _user!.role == UserRole.admin 
-                              ? Colors.red 
-                              : Colors.blue,
+                            color: _user!.role == UserRole.admin
+                                ? Colors.red
+                                : Colors.blue,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -171,42 +176,42 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 24),
 
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditProfileScreen(user: _user!),
-                          ),
-                        ).then((_) => _loadUser());
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit Profile'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF2196F3)),
-                        foregroundColor: const Color(0xFF2196F3),
+            if (_isOwnProfile)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  EditProfileScreen(user: _user!),
+                            ),
+                          ).then((_) => _loadUser());
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit Profile'),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF2196F3)),
+                          foregroundColor: const Color(0xFF2196F3),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 24),
             const Divider(),
 
-            // My Posts section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'My Posts',
-                style: TextStyle(
+                _isOwnProfile ? 'My Posts' : 'Posts',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -215,7 +220,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             // User posts list
             StreamBuilder<List<PostModel>>(
-              stream: _postService.getUserPosts(widget.userId ?? _authService.currentUser!.uid),
+              stream: _postService.getUserPosts(
+                widget.userId ?? _authService.currentUser!.uid,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(
@@ -262,19 +269,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
-        ),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
       ],
     );
   }
@@ -336,7 +334,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   String _getTimeAgo(DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);
-    
+
     if (difference.inMinutes < 1) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {

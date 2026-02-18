@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../models/user_model.dart';
+import '../profile/user_profile.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -10,59 +15,30 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> members = [
-    {
-      'name': 'Janni Purav',
-      'title': 'Digital Marketing Specialist | SEO Strategist | Driving Online Visibility and...',
-      'image': 'https://i.pravatar.cc/150?img=1',
-      'isVerified': false,
-    },
-    {
-      'name': 'Neeti Mohan',
-      'title': 'Educational Psychologist | Student Success Advocate | Enriching Learning...',
-      'image': 'https://i.pravatar.cc/150?img=5',
-      'isVerified': false,
-    },
-    {
-      'name': 'Akash Pandey',
-      'title': 'Digital Marketing Specialist | SEO Strategist | Driving Online Visibility and...',
-      'image': 'https://i.pravatar.cc/150?img=11',
-      'isVerified': true,
-    },
-    {
-      'name': 'Arvind Mishra',
-      'title': 'Software Engineer | AI Enthusiast | Transforming Ideas into Impact...',
-      'image': 'https://i.pravatar.cc/150?img=3',
-      'isVerified': false,
-    },
-    {
-      'name': 'Akshita Sharma',
-      'title': 'Passionate Environmental Scientist | Sustainability Advocate | Working Towar...',
-      'image': 'https://i.pravatar.cc/150?img=9',
-      'isVerified': false,
-    },
-    {
-      'name': 'Chris Froster',
-      'title': 'Creative UX/UI Designer | Crafting Exceptional User Experiences | Bring...',
-      'image': 'https://i.pravatar.cc/150?img=13',
-      'isVerified': false,
-    },
-    {
-      'name': 'Angela Joshi',
-      'title': 'Strategic Marketing Professional | Brand Enthusiast | Driving Success Throug...',
-      'image': 'https://i.pravatar.cc/150?img=24',
-      'isVerified': false,
-    },
-    {
-      'name': 'James Bay',
-      'title': 'Innovative Entrepreneur | Start-up Enthusiast | Transforming Ideas into Reality',
-      'image': 'https://i.pravatar.cc/150?img=8',
-      'isVerified': false,
-    },
-  ];
+  String _searchQuery = '';
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> get _usersStream =>
+      FirebaseFirestore.instance
+          .collection('users')
+          .orderBy('name')
+          .snapshots();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      final next = _searchController.text;
+      if (next == _searchQuery) return;
+      setState(() {
+        _searchQuery = next;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -73,7 +49,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
         ),
         title: const Text(
-          'Memberspage',
+          'Members',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -84,125 +60,175 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
-              child: Text(
-                '853 Members',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search members',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-          
-          // Members list
-          Expanded(
-            child: ListView.builder(
-              itemCount: members.length,
-              itemBuilder: (context, index) {
-                final member = members[index];
-                return _buildMemberTile(member);
-              },
-            ),
-          ),
-          
-          // Add button
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Add member
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _usersStream,
+                builder: (context, snapshot) {
+                  final total = snapshot.data?.docs.length;
+                  final label = total == null ? 'Members' : '$total Members';
+                  return Text(
+                    label,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
-                child: const Text(
-                  'Add',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ),
           ),
         ],
       ),
+      body: currentUser == null
+          ? const Center(child: Text('Please login to discover members.'))
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search members',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: _searchQuery.trim().isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                            ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: _usersStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Failed to load members',
+                            style: TextStyle(color: Colors.grey[700]),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final query = _searchQuery.trim().toLowerCase();
+
+                      final users = snapshot.data!.docs
+                          .map((doc) {
+                            final data = doc.data();
+                            final merged = <String, dynamic>{
+                              ...data,
+                              'uid': data['uid'] ?? doc.id,
+                            };
+                            return UserModel.fromMap(merged);
+                          })
+                          .where((user) {
+                            if (query.isEmpty) return true;
+                            return user.name.toLowerCase().contains(query) ||
+                                user.email.toLowerCase().contains(query);
+                          })
+                          .toList();
+
+                      if (users.isEmpty) {
+                        return Center(
+                          child: Text(
+                            query.isEmpty
+                                ? 'No members found.'
+                                : 'No results for "$query"',
+                            style: TextStyle(color: Colors.grey[700]),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        itemCount: users.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: Colors.grey[200]),
+                        itemBuilder: (context, index) {
+                          return _buildUserTile(users[index]);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member) {
-    return ListTile(
-      leading: CircleAvatar(
-        radius: 28,
-        backgroundImage: NetworkImage(member['image']),
-      ),
-      title: Row(
-        children: [
-          Text(
-            member['name'],
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-          if (member['isVerified'])
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.verified,
-                color: Colors.blue,
-                size: 16,
+  Widget _buildUserTile(UserModel user) {
+    final imageUrl = user.profileImageUrl;
+
+    final avatar = (imageUrl != null && imageUrl.trim().isNotEmpty)
+        ? CircleAvatar(radius: 22, backgroundImage: NetworkImage(imageUrl))
+        : CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.grey[200],
+            child: Text(
+              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
               ),
             ),
-        ],
+          );
+
+    return ListTile(
+      leading: avatar,
+      title: Text(
+        user.name,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
       ),
       subtitle: Text(
-        member['title'],
-        style: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 12,
-        ),
+        (user.bio != null && user.bio!.trim().isNotEmpty)
+            ? user.bio!
+            : user.email,
+        style: TextStyle(color: Colors.grey[600], fontSize: 12),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: IconButton(
-        onPressed: () {
-          // TODO: Add to friends/group
-        },
-        icon: const Icon(
-          Icons.add_circle_outline,
-          color: Color(0xFF2196F3),
-        ),
+      trailing: Wrap(
+        spacing: 8,
+        children: [
+          OutlinedButton(
+            onPressed: null,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Message'),
+          ),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserProfileScreen(userId: user.uid),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Profile'),
+          ),
+        ],
       ),
     );
   }

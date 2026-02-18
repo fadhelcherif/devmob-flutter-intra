@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+
 enum UserRole { employee, admin }
 
 class UserModel {
@@ -32,6 +34,14 @@ class UserModel {
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    final createdAtValue = map['createdAt'];
+    final createdAt = createdAtValue is Timestamp
+        ? createdAtValue.toDate()
+        : (createdAtValue is String
+              ? (DateTime.tryParse(createdAtValue) ??
+                    DateTime.fromMillisecondsSinceEpoch(0))
+              : DateTime.fromMillisecondsSinceEpoch(0));
+
     return UserModel(
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
@@ -42,7 +52,7 @@ class UserModel {
         (e) => e.name == map['role'],
         orElse: () => UserRole.employee,
       ),
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: createdAt,
     );
   }
 }
