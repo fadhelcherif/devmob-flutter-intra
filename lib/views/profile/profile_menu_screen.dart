@@ -1,14 +1,36 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
 import 'user_profile.dart';
 import 'edit_profile.dart';
 import '../group/create_group.dart';
-import '../group/mygroup.dart';
 import 'myconnections.dart';
 
-
-class ProfileMenuScreen extends StatelessWidget {
+class ProfileMenuScreen extends StatefulWidget {
   const ProfileMenuScreen({super.key});
+
+  @override
+  State<ProfileMenuScreen> createState() => _ProfileMenuScreenState();
+}
+
+class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
+  final AuthService _authService = AuthService();
+  UserModel? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    UserModel? user = await _authService.getUserData(
+      _authService.currentUser!.uid,
+    );
+    setState(() {
+      _user = user;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,26 +43,30 @@ class ProfileMenuScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  CircleAvatar(
+                 CircleAvatar(
                     radius: 40,
-                    backgroundImage: const NetworkImage('https://i.pravatar.cc/150?img=5'),
+                    backgroundImage: NetworkImage(
+                      _user?.profileImageUrl ?? 'https://i.pravatar.cc/150?img=5',
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Sarah Jhonson',
-                    style: TextStyle(
+                  Text(
+                    _user?.name ?? 'Loading...',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton(
-                  onPressed: () {
+                    onPressed: () {
                       Navigator.push(
-                    context,
-                  MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UserProfileScreen(),
+                        ),
                       );
-                      },
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF2196F3)),
                       shape: RoundedRectangleBorder(
@@ -60,38 +86,40 @@ class ProfileMenuScreen extends StatelessWidget {
             
             // Menu items
             _buildMenuItem(Icons.group_add, 'Create Group', () {
-               Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
               );
-        }),
+            }),
+            
+            _buildMenuItem(Icons.people, 'Members', () {
+              // TODO: Navigate to members
+            }),
             
             _buildMenuItem(Icons.connect_without_contact, 'My Connections', () {
-             Navigator.push(
-              context,
-             MaterialPageRoute(builder: (context) => const MyConnectionsScreen()),
-              );
-            }),   
-        
-            _buildMenuItem(Icons.groups, 'My Groups', () {
-               Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) => const GroupDetailScreen()),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyConnectionsScreen()),
               );
             }),
             
             const Divider(),
             
             _buildMenuItem(Icons.manage_accounts, 'Manage Profile', () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-
-              );
+              if (_user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfileScreen(user: _user!),
+                  ),
+                ).then((_) => _loadUser());
+              }
             }),
+            
             _buildMenuItem(Icons.settings, 'Settings', () {
               // TODO: Settings
             }),
+            
             _buildMenuItem(Icons.logout, 'Logout', () async {
               await AuthService().logout();
               Navigator.pushReplacementNamed(context, '/login');
@@ -107,7 +135,7 @@ class ProfileMenuScreen extends StatelessWidget {
       leading: Icon(icon, color: Colors.grey[700]),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 16),
+        style: const  TextStyle(fontSize: 16),
       ),
       onTap: onTap,
     );

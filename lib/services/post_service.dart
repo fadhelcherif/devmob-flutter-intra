@@ -45,6 +45,38 @@ class PostService {
       }).toList();
     });
   }
+  // Get posts by specific user
+Stream<List<PostModel>> getUserPosts(String userId) {
+  return _postsCollection
+      .where('userId', isEqualTo: userId)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) {
+    return snapshot.docs.map((doc) {
+      return PostModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList();
+  });
+}
+
+  // Update user name in all their posts
+Future<void> updateUserNameInPosts(String userId, String newName) async {
+  try {
+    // Get all posts by this user
+    QuerySnapshot posts = await _postsCollection
+        .where('userId', isEqualTo: userId)
+        .get();
+    
+    // Update each post
+    for (var doc in posts.docs) {
+      await doc.reference.update({'userName': newName});
+    }
+    
+    print('Updated ${posts.docs.length} posts with new name');
+  } catch (e) {
+    print('Update posts error: $e');
+    throw e;
+  }
+}
 
   // Like post
   Future<void> likePost(String postId, String userId) async {

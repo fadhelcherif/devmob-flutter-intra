@@ -104,4 +104,14 @@ class StorageService {
       return null;
     }
   }
+
+  // Pick image for profile
+Future<XFile?> pickProfileImage() async {
+  return await pickImage();
+}
+
+// Upload profile image to Cloudinary
+Future<String?> uploadProfileImage(XFile imageFile) async {
+  return await uploadImageFile(imageFile, 'profiles');
+}
 }

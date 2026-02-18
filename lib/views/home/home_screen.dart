@@ -9,7 +9,7 @@ import 'notifications.dart';
 import '../../models/post_model.dart';
 import '../../services/post_service.dart';
 import '../../services/auth_service.dart';
-
+import '../../models/user_model.dart';
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -21,6 +21,23 @@ class _FeedScreenState extends State<FeedScreen> {
   final PostService _postService = PostService();
   final AuthService _authService = AuthService();
   int _selectedIndex = 0;
+ 
+  UserModel? _currentUser;
+
+@override
+void initState() {
+  super.initState();
+  _loadCurrentUser();
+}
+
+Future<void> _loadCurrentUser() async {
+  UserModel? user = await _authService.getUserData(
+    _authService.currentUser!.uid,
+  );
+  setState(() {
+    _currentUser = user;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -85,11 +102,13 @@ class _FeedScreenState extends State<FeedScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CreatePostScreen()),
           );
+          // Reload user when coming back
+          _loadCurrentUser();
         },
         backgroundColor: const Color(0xFF2196F3),
         child: const Icon(Icons.add, size: 32),
@@ -173,10 +192,14 @@ class _FeedScreenState extends State<FeedScreen> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundImage: NetworkImage(post.userImage),
+             CircleAvatar(
+              radius: 24,
+              backgroundImage: NetworkImage(
+                post.userId == _authService.currentUser?.uid && _currentUser?.profileImageUrl != null
+                    ? _currentUser!.profileImageUrl!  // Show your updated image
+                    : post.userImage,                  // Show post creator's image (old or other user)
               ),
+            ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

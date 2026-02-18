@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import 'post_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -111,6 +112,22 @@ class AuthService {
     }
     return null;
   }
+
+  // Update user profile
+Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
+  try {
+    // Update user document
+    await _firestore.collection('users').doc(uid).update(data);
+    
+    // If name changed, update all posts
+    if (data.containsKey('name')) {
+      await PostService().updateUserNameInPosts(uid, data['name']);
+    }
+  } catch (e) {
+    print('Update user error: $e');
+    throw e;
+  }
+}
 
   // Logout
   Future<void> logout() async {

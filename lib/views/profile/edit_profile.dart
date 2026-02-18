@@ -1,26 +1,119 @@
-// EditProfile screen
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
+import 'dart:io';
+import '../../services/storage_service.dart';
+import 'package:image_picker/image_picker.dart';
+
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final UserModel user;
+
+  const EditProfileScreen({super.key, required this.user});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameController = TextEditingController(text: 'Sarah Johnson');
-  final _birthdayController = TextEditingController(text: '12/02/2000');
-  final _jobTitleController = TextEditingController(text: 'Product Designer');
-  final _companyController = TextEditingController(text: 'Apple');
-  final _locationController = TextEditingController(text: 'Mumbai, India');
-  final _headlineController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _bioController = TextEditingController();
+  final _jobTitleController = TextEditingController();
+  final _locationController = TextEditingController();
+  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+  XFile? _selectedImage;
+  bool _isUploadingImage = false;
+  
+  bool _isLoading = false;
 
-  String _selectedGender = 'Female';
-  String _selectedPronouns = 'She / Her';
+  Future<void> _pickProfileImage() async {
+  XFile? image = await _storageService.pickProfileImage();
+  if (image != null) {
+    setState(() {
+      _selectedImage = image;
+    });
+    _uploadProfileImage(image);
+  }
+}
 
-  final List<String> _genders = ['Female', 'Male', 'Other'];
-  final List<String> _pronouns = ['She / Her', 'He / Him', 'They / Them'];
+Future<void> _uploadProfileImage(XFile image) async {
+  setState(() {
+    _isUploadingImage = true;
+  });
+  
+  String? url = await _storageService.uploadProfileImage(image);
+  
+  if (url != null) {
+    // Update user profile with new image URL
+    await _authService.updateUserProfile(
+      widget.user.uid,
+      {'profileImageUrl': url},
+    );
+    
+    setState(() {
+      _isUploadingImage = false;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile image updated!')),
+    );
+  } else {
+    setState(() {
+      _isUploadingImage = false;
+    });
+  }
+}
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill with current data
+    _nameController.text = widget.user.name;
+    _bioController.text = widget.user.bio ?? '';
+  }
+
+  Future<void> _saveProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name is required')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _authService.updateUserProfile(
+        widget.user.uid,
+        {
+          'name': _nameController.text.trim(),
+          'bio': _bioController.text.trim(),
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +122,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close, color: Colors.black),
+        ),
         title: const Text(
           'Edit Profile',
           style: TextStyle(
@@ -38,9 +135,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.black),
+          TextButton(
+            onPressed: _isLoading ? null : _saveProfile,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -53,31 +162,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Center(
               child: Stack(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 50,
-                    backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                    backgroundImage: _selectedImage != null
+                        ? FileImage(File(_selectedImage!.path)) as ImageProvider
+                        : NetworkImage(
+                            widget.user.profileImageUrl ?? 'https://i.pravatar.cc/150',
+                          ),
                   ),
                   Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2196F3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
+  bottom: 0,
+  right: 0,
+  child: GestureDetector(
+    onTap: _isUploadingImage ? null : _pickProfileImage,
+    child: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: const BoxDecoration(
+        color: Color(0xFF2196F3),
+        shape: BoxShape.circle,
+      ),
+      child: _isUploadingImage
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : const Icon(
+              Icons.camera_alt,
+              color: Colors.white,
+              size: 20,
+            ),
+    ),
+  ),
+),
                 ],
               ),
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             
             // Name field
             _buildTextField(
@@ -87,105 +212,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             
             const SizedBox(height: 16),
             
-            // Gender and Pronouns row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Gender',
-                    value: _selectedGender,
-                    items: _genders,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value!;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildDropdown(
-                    label: 'Pronouns',
-                    value: _selectedPronouns,
-                    items: _pronouns,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedPronouns = value!;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Birthday field
+            // Bio field
             _buildTextField(
-              label: 'Birthday',
-              controller: _birthdayController,
-              suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF2196F3)),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Job Title field
-            _buildTextField(
-              label: 'Job Title',
-              controller: _jobTitleController,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Company field
-            _buildTextField(
-              label: 'Company',
-              controller: _companyController,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Location field
-            _buildTextField(
-              label: 'Location',
-              controller: _locationController,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Headline field
-            _buildTextField(
-              label: 'Headline',
-              controller: _headlineController,
+              label: 'Bio',
+              controller: _bioController,
               maxLines: 3,
+              hint: 'Tell us about yourself...',
             ),
             
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
             
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Save profile
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            // Email (read-only)
+            _buildTextField(
+              label: 'Email',
+              controller: TextEditingController(text: widget.user.email),
+              enabled: false,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Role (read-only)
+            _buildTextField(
+              label: 'Role',
+              controller: TextEditingController(
+                text: widget.user.role.name.toUpperCase(),
               ),
+              enabled: false,
             ),
           ],
         ),
@@ -196,8 +248,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
-    Widget? suffixIcon,
     int maxLines = 1,
+    String? hint,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,56 +266,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          enabled: enabled,
           decoration: InputDecoration(
+            hintText: hint,
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
-            suffixIcon: suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down),
-              items: items.map((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                );
-              }).toList(),
-              onChanged: onChanged,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, 
+              vertical: 12,
             ),
           ),
         ),
@@ -273,11 +288,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _birthdayController.dispose();
+    _bioController.dispose();
     _jobTitleController.dispose();
-    _companyController.dispose();
     _locationController.dispose();
-    _headlineController.dispose();
     super.dispose();
   }
 }
