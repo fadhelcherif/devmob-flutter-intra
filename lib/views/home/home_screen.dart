@@ -21,7 +21,83 @@ class _FeedScreenState extends State<FeedScreen> {
   final PostService _postService = PostService();
   final AuthService _authService = AuthService();
   int _selectedIndex = 0;
- 
+ Future<void> _editPost(PostModel post) async {
+  final TextEditingController editController = TextEditingController(text: post.content);
+  
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Edit Post'),
+      content: TextField(
+        controller: editController,
+        maxLines: 5,
+        decoration: const InputDecoration(
+          hintText: 'Edit your post...',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (editController.text.trim().isNotEmpty) {
+              try {
+                await _postService.editPost(post.id, editController.text.trim());
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Post updated!')),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _deletePost(PostModel post) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete Post'),
+      content: const Text('Are you sure you want to delete this post?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm == true) {
+    try {
+      await _postService.deletePost(post.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+}
   UserModel? _currentUser;
 
 @override
@@ -55,7 +131,7 @@ Future<void> _loadCurrentUser() async {
           ),
         ),
         title: const Text(
-          'Entreprise_Name',
+          'MyCorp',
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -191,39 +267,72 @@ Future<void> _loadCurrentUser() async {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-             CircleAvatar(
-              radius: 24,
-              backgroundImage: NetworkImage(
-                post.userId == _authService.currentUser?.uid && _currentUser?.profileImageUrl != null
-                    ? _currentUser!.profileImageUrl!  // Show your updated image
-                    : post.userImage,                  // Show post creator's image (old or other user)
-              ),
+  children: [
+    CircleAvatar(
+      radius: 24,
+      backgroundImage: NetworkImage(
+        post.userId == _authService.currentUser?.uid && _currentUser?.profileImageUrl != null
+            ? _currentUser!.profileImageUrl!
+            : post.userImage,
+      ),
+    ),
+    const SizedBox(width: 12),
+    Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            post.userName,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.userName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      _getTimeAgo(post.createdAt),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
+          Text(
+            _getTimeAgo(post.createdAt),
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    ),
+    // Show menu only for post creator
+    if (post.userId == _authService.currentUser?.uid)
+      PopupMenuButton<String>(
+        onSelected: (value) {
+          if (value == 'edit') {
+            _editPost(post);
+          } else if (value == 'delete') {
+            _deletePost(post);
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit, size: 20),
+                SizedBox(width: 8),
+                Text('Edit'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete, color: Colors.red, size: 20),
+                SizedBox(width: 8),
+                Text('Delete', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+      ),
+  ],
+),
           
           const SizedBox(height: 12),
           
@@ -275,7 +384,7 @@ Future<void> _loadCurrentUser() async {
                 'Like',
                 onTap: () => _likePost(post),
               ),
-              _buildActionButton(Icons.thumb_down_outlined, 'Dislike'),
+              
               _buildActionButton(
                 Icons.chat_bubble_outline, 
                 'Comment',
@@ -288,7 +397,7 @@ Future<void> _loadCurrentUser() async {
                   );
                 },
               ),
-              _buildActionButton(Icons.share_outlined, 'Share'),
+             
             ],
           ),
         ],

@@ -77,6 +77,28 @@ Future<void> updateUserNameInPosts(String userId, String newName) async {
     throw e;
   }
 }
+// Edit post
+Future<void> editPost(String postId, String newContent) async {
+  try {
+    await _postsCollection.doc(postId).update({
+      'content': newContent,
+      'editedAt': Timestamp.now(),
+    });
+  } catch (e) {
+    print('Edit post error: $e');
+    throw e;
+  }
+}
+
+// Delete post
+Future<void> deletePost(String postId) async {
+  try {
+    await _postsCollection.doc(postId).delete();
+  } catch (e) {
+    print('Delete post error: $e');
+    throw e;
+  }
+}
 
   // Like post
   Future<void> likePost(String postId, String userId) async {

@@ -1,10 +1,11 @@
+import 'package:devmobi_flutter_intra/views/home/discover.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import 'user_profile.dart';
 import 'edit_profile.dart';
 import '../group/create_group.dart';
-import 'myconnections.dart';
+
 
 class ProfileMenuScreen extends StatefulWidget {
   const ProfileMenuScreen({super.key});
@@ -93,15 +94,12 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
             }),
             
             _buildMenuItem(Icons.people, 'Members', () {
-              // TODO: Navigate to members
-            }),
-            
-            _buildMenuItem(Icons.connect_without_contact, 'My Connections', () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const MyConnectionsScreen()),
+                MaterialPageRoute(builder: (context) => const DiscoverScreen()),
               );
             }),
+            
             
             const Divider(),
             
