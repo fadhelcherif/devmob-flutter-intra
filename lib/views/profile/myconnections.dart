@@ -193,6 +193,7 @@ class _MyConnectionsScreenState extends State<MyConnectionsScreen> {
                   builder: (context) => ChatDetailScreen(
                     userName: connection['name'],
                     userImage: connection['image'],
+                    receiverId: 'receiver-id-placeholder', // Replace with actual receiver ID
                   ),
                 ),
               );

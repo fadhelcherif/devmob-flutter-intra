@@ -1,14 +1,22 @@
-// ChatDetail screen
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../models/message_model.dart';
+import '../../models/user_model.dart';
+import '../../services/chat_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String userName;
   final String userImage;
+  final String receiverId;
 
   const ChatDetailScreen({
     super.key,
     required this.userName,
     required this.userImage,
+    required this.receiverId,
   });
 
   @override
@@ -17,31 +25,88 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _messageController = TextEditingController();
-  final List<Map<String, dynamic>> messages = [
-    {
-      'message': 'Hey! How are you doing?',
-      'time': '9:10 PM',
-      'isMe': false,
-    },
-    {
-      'message': 'I\'m good, thanks! How about you?',
-      'time': '9:12 PM',
-      'isMe': true,
-    },
-    {
-      'message': 'Great! I\'ll see you then. 👋',
-      'time': '9:12 PM',
-      'isMe': false,
-    },
-    {
-      'message': 'Of course! This is a HIIT class on...',
-      'time': '9:30 PM',
-      'isMe': false,
-    },
-  ];
+  final ChatService _chatService = ChatService();
+  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+  UserModel? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    UserModel? user = await _authService.getUserData(
+      _authService.currentUser!.uid,
+    );
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _currentUser == null) return;
+
+    try {
+      await _chatService.sendMessage(
+        senderId: _currentUser!.uid,
+        senderName: _currentUser!.name,
+        senderImage: _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
+        receiverId: widget.receiverId,
+        content: _messageController.text.trim(),
+      );
+      _messageController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> _sendImage() async {
+    if (_currentUser == null) return;
+
+    XFile? image = await _storageService.pickImage();
+    if (image == null) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      String? imageUrl = await _storageService.uploadImageFile(image, 'chat_images');
+      
+      Navigator.pop(context); // Close loading
+
+      if (imageUrl != null) {
+        await _chatService.sendImageMessage(
+          senderId: _currentUser!.uid,
+          senderName: _currentUser!.name,
+          senderImage: _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
+          receiverId: widget.receiverId,
+          imageUrl: imageUrl,
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading image: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -58,58 +123,55 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               backgroundImage: NetworkImage(widget.userImage),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.userName,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Online',
-                  style: TextStyle(
-                    color: Colors.green[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            Text(
+              widget.userName,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.videocam, color: Colors.black),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.call, color: Colors.black),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-          ),
-        ],
       ),
       body: Column(
         children: [
           // Messages list
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return _buildMessageBubble(message);
+            child: StreamBuilder<List<MessageModel>>(
+              stream: _chatService.getMessages(_currentUser!.uid, widget.receiverId),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final messages = snapshot.data ?? [];
+
+                if (messages.isEmpty) {
+                  return const Center(
+                    child: Text('No messages yet. Start chatting!'),
+                  );
+                }
+
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isMe = message.senderId == _currentUser!.uid;
+                    return _buildMessageBubble(message, isMe);
+                  },
+                );
               },
             ),
           ),
           
-          // Input field
+          // Input field - SIMPLIFIED
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -125,10 +187,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             child: SafeArea(
               child: Row(
                 children: [
+                  // Image button
                   IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.add_circle_outline, color: Color(0xFF2196F3)),
+                    onPressed: _sendImage,
+                    icon: const Icon(Icons.image, color: Color(0xFF2196F3)),
                   ),
+                  // Text input
                   Expanded(
                     child: TextField(
                       controller: _messageController,
@@ -148,13 +212,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
                     ),
                   ),
+                  // Send button
                   IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.camera_alt, color: Colors.grey),
-                  ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.mic, color: Colors.grey),
+                    onPressed: _sendMessage,
+                    icon: const Icon(Icons.send, color: Color(0xFF2196F3)),
                   ),
                 ],
               ),
@@ -165,51 +226,79 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> message) {
-    final bool isMe = message['isMe'];
-    
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+  Widget _buildMessageBubble(MessageModel message, bool isMe) {
+  // Check if message is an image by checking if it has imageUrl in Firestore
+  // We need to get the raw data to check for imageUrl
+  return FutureBuilder<DocumentSnapshot>(
+    future: FirebaseFirestore.instance
+        .collection('chats')
+        .doc(_chatService.getChatId(_currentUser!.uid, widget.receiverId))
+        .collection('messages')
+        .doc(message.id)
+        .get(),
+    builder: (context, snapshot) {
+      bool isImage = false;
+      String? imageUrl;
+      
+      if (snapshot.hasData && snapshot.data!.exists) {
+        final data = snapshot.data!.data() as Map<String, dynamic>?;
+        isImage = data?['isImage'] == true;
+        imageUrl = data?['imageUrl'];
+      }
+
+      return Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
+          decoration: BoxDecoration(
+            color: isMe ? const Color(0xFF2196F3) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: isImage && imageUrl != null
+                ? Image.network(
+                    imageUrl,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        padding: const EdgeInsets.all(20),
+                        child: const CircularProgressIndicator(),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 200,
+                        height: 100,
+                        padding: const EdgeInsets.all(16),
+                        child: const Text('Failed to load image'),
+                      );
+                    },
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Text(
+                      message.content,
+                      style: TextStyle(
+                        color: isMe ? Colors.white : Colors.black87,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+          ),
         ),
-        decoration: BoxDecoration(
-          color: isMe ? const Color(0xFF2196F3) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              message['message'],
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              message['time'],
-              style: TextStyle(
-                color: isMe ? Colors.white70 : Colors.grey[500],
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   @override
   void dispose() {

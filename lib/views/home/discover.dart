@@ -1,3 +1,4 @@
+import 'package:devmobi_flutter_intra/views/chat/chat_detail.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,7 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final _searchController = TextEditingController();
+  
 
   String _searchQuery = '';
 
@@ -134,6 +136,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             return UserModel.fromMap(merged);
                           })
                           .where((user) {
+                             if (user.uid == currentUser.uid) return false;
+    
                             if (query.isEmpty) return true;
                             return user.name.toLowerCase().contains(query) ||
                                 user.email.toLowerCase().contains(query);
@@ -202,15 +206,26 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         spacing: 8,
         children: [
           OutlinedButton(
-            onPressed: null,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            child: const Text('Message'),
-          ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatDetailScreen(
+                        userName: user.name, 
+                        userImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150', 
+                        receiverId: user.uid,
+                      ),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('Message'),
+              ),
           OutlinedButton(
             onPressed: () {
               Navigator.push(
