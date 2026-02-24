@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../services/group_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -10,7 +13,61 @@ class CreateGroupScreen extends StatefulWidget {
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  bool _isOpen = true;
+  final GroupService _groupService = GroupService();
+  final AuthService _authService = AuthService();
+  
+  bool _isPublic = true;
+  bool _isLoading = false;
+
+  Future<void> _createGroup() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a group name')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Get current user
+      UserModel? user = await _authService.getUserData(
+        _authService.currentUser!.uid,
+      );
+
+      if (user != null) {
+        await _groupService.createGroup(
+          name: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          createdBy: user.uid,
+          creatorName: user.name,
+          creatorImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150',
+          isPublic: _isPublic,
+        );
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Group created successfully!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +76,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close, color: Colors.black),
+        ),
         title: const Text(
           'Create a group',
           style: TextStyle(
@@ -27,12 +88,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.black),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -119,16 +174,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        _isOpen = true;
+                        _isPublic = true;
                       });
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: _isOpen ? const Color(0xFF2196F3) : Colors.grey[300]!,
-                        width: _isOpen ? 2 : 1,
+                        color: _isPublic ? const Color(0xFF2196F3) : Colors.grey[300]!,
+                        width: _isPublic ? 2 : 1,
                       ),
-                      backgroundColor: _isOpen ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
-                      foregroundColor: _isOpen ? const Color(0xFF2196F3) : Colors.black,
+                      backgroundColor: _isPublic ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
+                      foregroundColor: _isPublic ? const Color(0xFF2196F3) : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -142,16 +197,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        _isOpen = false;
+                        _isPublic = false;
                       });
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: !_isOpen ? const Color(0xFF2196F3) : Colors.grey[300]!,
-                        width: !_isOpen ? 2 : 1,
+                        color: !_isPublic ? const Color(0xFF2196F3) : Colors.grey[300]!,
+                        width: !_isPublic ? 2 : 1,
                       ),
-                      backgroundColor: !_isOpen ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
-                      foregroundColor: !_isOpen ? const Color(0xFF2196F3) : Colors.black,
+                      backgroundColor: !_isPublic ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
+                      foregroundColor: !_isPublic ? const Color(0xFF2196F3) : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -167,7 +222,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             
             // Description text
             Text(
-              _isOpen 
+              _isPublic 
                 ? 'Anyone can join the space as long as they are the member of community.'
                 : 'Only invited members can join this group.',
               style: TextStyle(
@@ -183,10 +238,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Create group
-                  Navigator.pop(context);
-                },
+                onPressed: _isLoading ? null : _createGroup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2196F3),
                   foregroundColor: Colors.white,
@@ -194,13 +246,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Create',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Create',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],

@@ -1,17 +1,121 @@
-// GroupDetail screen
 import 'package:flutter/material.dart';
+import '../../models/group_model.dart';
+import '../../services/group_service.dart';
+import '../../services/auth_service.dart';
 import 'group_chat.dart';
 
 class GroupDetailScreen extends StatefulWidget {
-  const GroupDetailScreen({super.key});
+  final String groupId;
+
+  const GroupDetailScreen({super.key, required this.groupId});
 
   @override
   State<GroupDetailScreen> createState() => _GroupDetailScreenState();
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
+  final GroupService _groupService = GroupService();
+  final AuthService _authService = AuthService();
+  GroupModel? _group;
+  bool _isLoading = true;
+  bool _isMember = false;
+  bool _isPending = false;
+  bool _isCreator = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGroup();
+  }
+
+  Future<void> _loadGroup() async {
+    try {
+      GroupModel? group = await _groupService.getGroup(widget.groupId);
+      String currentUserId = _authService.currentUser!.uid;
+      
+      setState(() {
+        _group = group;
+        if (group != null) {
+          _isMember = group.members.contains(currentUserId);
+          _isPending = group.pendingMembers.contains(currentUserId);
+          _isCreator = group.createdBy == currentUserId;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _joinGroup() async {
+    try {
+      if (_group!.isPublic) {
+        // Public group - join immediately
+        await _groupService.joinGroup(widget.groupId, _authService.currentUser!.uid);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Joined group!')),
+        );
+      } else {
+        // Private group - send request
+        await _groupService.requestToJoinGroup(widget.groupId, _authService.currentUser!.uid);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request sent to group creator')),
+        );
+      }
+      _loadGroup();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> _leaveGroup() async {
+    try {
+      await _groupService.leaveGroup(widget.groupId, _authService.currentUser!.uid);
+      _loadGroup();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Left group')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> _cancelRequest() async {
+    try {
+      await _groupService.rejectMember(widget.groupId, _authService.currentUser!.uid);
+      _loadGroup();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Request cancelled')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_group == null) {
+      return const Scaffold(
+        body: Center(child: Text('Group not found')),
+      );
+    }
+
+    final group = _group!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -22,7 +126,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
         ),
         title: const Text(
-          'Group Posts',
+          'Group',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -30,204 +134,250 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ),
         ),
         actions: [
-          // Access chat button
-          TextButton.icon(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const GroupChatScreen()),
-    );
-  },
-  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2196F3)),
-  label: const Text(
-    'Access chat',
-    style: TextStyle(color: Color(0xFF2196F3)),
-  ),
-),
+          if (_isMember)
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupDetailScreen(groupId: widget.groupId),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2196F3)),
+              label: const Text(
+                'Chat',
+                style: TextStyle(color: Color(0xFF2196F3)),
+              ),
+            ),
         ],
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Group cover image
-            Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                Image.network(
-                  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400',
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-                // Group avatar
-                Positioned(
-                  bottom: -40,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 40,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'),
+            // Group info
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFF2196F3),
+                    child: Text(
+                      group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        fontSize: 40,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 50),
-            
-            // Group name
-            const Center(
-              child: Text(
-                'C# Discussion',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    group.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        group.isPublic ? Icons.public : Icons.lock,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        group.isPublic ? 'Public Group' : 'Private Group',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    group.description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Stats row
+
+            // Stats
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStat('4.5', '581 reviews'),
+                  _buildStat('${group.members.length}', 'Members'),
                   _buildStatDivider(),
-                  _buildStat('399', 'Members'),
-                  _buildStatDivider(),
-                  _buildStat('60+', 'Daily active users'),
+                  if (!group.isPublic) _buildStat('${group.pendingMembers.length}', 'Pending'),
+                  if (!group.isPublic) _buildStatDivider(),
+                  _buildStat('0', 'Posts'),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Description
+
+            const SizedBox(height: 24),
+
+            // Creator info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Elevate Your Fitness Goal with Cult.fit | A Space Committed to Fitness, and Personal Growth.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  height: 1.4,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: NetworkImage(group.creatorImage),
                 ),
+                title: const Text('Created by'),
+                subtitle: Text(group.creatorName),
               ),
             ),
-            
-            const SizedBox(height: 8),
-            
-            // Members info
-            Center(
-              child: Text(
-                '859 members including Janvi Purav and 2 others you may know',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Featured section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Featured',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Featured posts row
-            SizedBox(
-              height: 150,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildFeaturedCard(
-                    image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=200',
-                    title: 'Dancing it out with Hritik Roshan',
+
+            // Show pending requests if creator
+            if (_isCreator && !group.isPublic && group.pendingMembers.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Pending Requests',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 12),
-                  _buildFeaturedCard(
-                    image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200',
-                    title: 'Fun with F',
-                  ),
-                ],
+                ),
               ),
-            ),
-            
+              _buildPendingList(),
+            ],
+
             const SizedBox(height: 24),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
+      bottomNavigationBar: _buildBottomButton(),
+    );
+  }
+
+  Widget _buildBottomButton() {
+    if (_isMember) {
+      return Padding(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () {
-              // TODO: Create post in group
-            },
+            onPressed: _leaveGroup,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
+              backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
             ),
-            child: const Text(
-              'Post in group',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('Leave Group'),
           ),
         ),
+      );
+    }
+
+    if (_isPending) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _cancelRequest,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel Request'),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: _joinGroup,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2196F3),
+            foregroundColor: Colors.white,
+          ),
+          child: Text(_group!.isPublic ? 'Join Group' : 'Request to Join'),
+        ),
       ),
+    );
+  }
+
+  Widget _buildPendingList() {
+    return Column(
+      children: _group!.pendingMembers.map((userId) {
+        return FutureBuilder(
+          future: _authService.getUserData(userId),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox.shrink();
+            final user = snapshot.data!;
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundImage: NetworkImage(
+                  user.profileImageUrl ?? 'https://i.pravatar.cc/150',
+                ),
+              ),
+              title: Text(user.name),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.check, color: Colors.green),
+                    onPressed: () async {
+                      await _groupService.approveMember(widget.groupId, userId);
+                      _loadGroup();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: () async {
+                      await _groupService.rejectMember(widget.groupId, userId);
+                      _loadGroup();
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      }).toList(),
     );
   }
 
   Widget _buildStat(String value, String label) {
     return Column(
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (label.contains('reviews'))
-              const Icon(Icons.star, color: Colors.amber, size: 16),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
             color: Colors.grey[600],
-            fontSize: 11,
+            fontSize: 14,
           ),
         ),
       ],
@@ -239,36 +389,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       height: 30,
       width: 1,
       color: Colors.grey[300],
-    );
-  }
-
-  Widget _buildFeaturedCard({required String image, required String title}) {
-    return SizedBox(
-      width: 140,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              image,
-              width: 140,
-              height: 100,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 }

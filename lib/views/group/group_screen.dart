@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'group_screen.dart';
+import '../../models/group_model.dart';
+import '../../services/group_service.dart';
+import '../../services/auth_service.dart';
 import 'mygroup.dart';
 
 class GroupsScreen extends StatefulWidget {
@@ -10,32 +12,8 @@ class GroupsScreen extends StatefulWidget {
 }
 
 class _GroupsScreenState extends State<GroupsScreen> {
-  final List<Map<String, dynamic>> groups = [
-    {
-      'name': 'Dev mobile Group',
-      'type': 'Public',
-      'members': 82,
-      'host': 'Anamika Jain',
-      'hostImage': 'https://i.pravatar.cc/150?img=5',
-      'isJoined': false,
-    },
-    {
-      'name': 'C# Discussion group',
-      'type': 'Public',
-      'members': 24,
-      'host': 'Max Albino',
-      'hostImage': 'https://i.pravatar.cc/150?img=3',
-      'isJoined': false,
-    },
-    {
-      'name': 'C# Discussion group',
-      'type': 'Private',
-      'members': 24,
-      'host': 'Max Albino',
-      'hostImage': 'https://i.pravatar.cc/150?img=3',
-      'isJoined': false,
-    },
-  ];
+  final GroupService _groupService = GroupService();
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -63,24 +41,43 @@ class _GroupsScreenState extends State<GroupsScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: groups.length,
-        itemBuilder: (context, index) {
-          final group = groups[index];
-          return _buildGroupCard(group);
+      body: StreamBuilder<List<GroupModel>>(
+        stream: _groupService.getAllGroups(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final groups = snapshot.data ?? [];
+
+          if (groups.isEmpty) {
+            return const Center(child: Text('No groups yet'));
+          }
+
+          return ListView.builder(
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final group = groups[index];
+              return _buildGroupCard(group);
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildGroupCard(Map<String, dynamic> group) {
-    final bool isPublic = group['type'] == 'Public';
-    
+  Widget _buildGroupCard(GroupModel group) {
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const GroupDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => GroupDetailScreen(groupId: group.id),
+          ),
         );
       },
       child: Container(
@@ -93,12 +90,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type and menu
+            // Type
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  group['type'],
+                  group.isPublic ? 'Public' : 'Private',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -112,7 +109,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             
             // Group name
             Text(
-              group['name'],
+              group.name,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -121,34 +118,27 @@ class _GroupsScreenState extends State<GroupsScreen> {
             
             const SizedBox(height: 12),
             
-            // Members avatars
-            Row(
-              children: [
-                _buildMemberAvatar('https://i.pravatar.cc/150?img=1'),
-                _buildMemberAvatar('https://i.pravatar.cc/150?img=2'),
-                const SizedBox(width: 8),
-                Text(
-                  'and ${group['members']} others are members',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            // Members count
+            Text(
+              '${group.members.length} members',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
             ),
             
             const SizedBox(height: 12),
             
-            // Host
+            // Creator
             Row(
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundImage: NetworkImage(group['hostImage']),
+                  backgroundImage: NetworkImage(group.creatorImage),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  group['host'],
+                  group.creatorName,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -172,45 +162,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                 ),
               ],
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Join button
-            SizedBox(
-              width: 80,
-              height: 36,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    group['isJoined'] = !group['isJoined'];
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: group['isJoined'] ? Colors.grey : const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-                child: Text(
-                  group['isJoined'] ? 'Joined' : 'Join',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildMemberAvatar(String imageUrl) {
-    return Container(
-      margin: const EdgeInsets.only(right: 4),
-      child: CircleAvatar(
-        radius: 14,
-        backgroundImage: NetworkImage(imageUrl),
       ),
     );
   }
