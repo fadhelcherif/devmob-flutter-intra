@@ -17,7 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
-  
+
   UserRole _selectedRole = UserRole.employee;
   bool _rememberMe = false;
   bool _isLoading = false;
@@ -25,9 +25,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _register() async {
     if (_isLoading) return; // Prevent multiple clicks
-    
+
     print('Register button pressed');
-    
+
     // Validation - Check for empty fields
     if (_nameController.text.trim().isEmpty) {
       setState(() {
@@ -77,19 +77,25 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      print('Calling register service with email: ${_emailController.text.trim()}');
-      
-      UserModel? user = await _authService.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        name: _nameController.text.trim(),
-        role: _selectedRole,
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw Exception('Connection timeout. Please check your internet connection.');
-        },
+      print(
+        'Calling register service with email: ${_emailController.text.trim()}',
       );
+
+      UserModel? user = await _authService
+          .register(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            name: _nameController.text.trim(),
+            role: _selectedRole,
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception(
+                'Connection timeout. Please check your internet connection.',
+              );
+            },
+          );
 
       print('Register result: ${user != null ? "Success" : "Failed"}');
 
@@ -112,7 +118,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       print('Register error caught: $e');
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
         // Clean up error message
@@ -136,8 +142,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -145,33 +153,29 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              
+
               const Text(
                 "Let's start here",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Error message
               if (_errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red[100],
+                    color: colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: Colors.red[800]),
+                    style: TextStyle(color: colorScheme.onErrorContainer),
                   ),
                 ),
-              
+
               // Name field
               _buildTextField(
                 label: 'Name',
@@ -179,9 +183,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _nameController,
                 icon: Icons.person_outline,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Email field
               _buildTextField(
                 label: 'Email',
@@ -190,9 +194,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.person_outline,
                 keyboardType: TextInputType.emailAddress,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Username field
               _buildTextField(
                 label: 'Username',
@@ -200,9 +204,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _usernameController,
                 icon: Icons.person_outline,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Password field
               _buildTextField(
                 label: 'Password',
@@ -211,9 +215,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.lock_outline,
                 obscureText: true,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Confirm Password field
               _buildTextField(
                 label: 'Re-enter Password',
@@ -222,17 +226,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.lock_outline,
                 obscureText: true,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Role selection
               const Text(
                 'Role',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               Row(
@@ -249,7 +249,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               });
                             }
                           },
-                          activeColor: const Color(0xFF2196F3),
+                          activeColor: theme.primaryColor,
                         ),
                         const Text('Admin'),
                       ],
@@ -267,7 +267,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               });
                             }
                           },
-                          activeColor: const Color(0xFF2196F3),
+                          activeColor: theme.primaryColor,
                         ),
                         const Text('Employé'),
                       ],
@@ -275,9 +275,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Remember me & Forgot password
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -291,29 +291,26 @@ class _SignupScreenState extends State<SignupScreen> {
                             _rememberMe = value ?? false;
                           });
                         },
-                        activeColor: const Color(0xFF2196F3),
+                        activeColor: theme.primaryColor,
                       ),
-                      const Text(
-                        'Remember me',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      const Text('Remember me', style: TextStyle(fontSize: 12)),
                     ],
                   ),
                   TextButton(
                     onPressed: () {},
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.primaryColor,
+                    ),
                     child: const Text(
                       'Forgot Password',
-                      style: TextStyle(
-                        color: Color(0xFF2196F3),
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Sign Up button
               SizedBox(
                 width: double.infinity,
@@ -321,14 +318,14 @@ class _SignupScreenState extends State<SignupScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: colorScheme.onPrimary)
                       : const Text(
                           'Sign Up',
                           style: TextStyle(
@@ -353,16 +350,15 @@ class _SignupScreenState extends State<SignupScreen> {
     bool obscureText = false,
     TextInputType? keyboardType,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -371,17 +367,17 @@ class _SignupScreenState extends State<SignupScreen> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400]),
-            prefixIcon: Icon(icon, color: Colors.grey),
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+            prefixIcon: Icon(icon, color: colorScheme.onSurfaceVariant),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: colorScheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF2196F3)),
+              borderSide: BorderSide(color: theme.primaryColor),
             ),
           ),
         ),

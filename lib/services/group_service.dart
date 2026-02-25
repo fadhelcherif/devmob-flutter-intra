@@ -3,8 +3,8 @@ import '../models/group_model.dart';
 
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _groupsCollection = 
-      FirebaseFirestore.instance.collection('groups');
+  final CollectionReference _groupsCollection = FirebaseFirestore.instance
+      .collection('groups');
 
   // Create new group
   Future<String> createGroup({
@@ -17,7 +17,7 @@ class GroupService {
   }) async {
     try {
       DocumentReference docRef = _groupsCollection.doc();
-      
+
       GroupModel group = GroupModel(
         id: docRef.id,
         name: name,
@@ -29,7 +29,7 @@ class GroupService {
         members: [createdBy], // Creator is first member
         createdAt: DateTime.now(),
       );
-      
+
       await docRef.set(group.toMap());
       return docRef.id;
     } catch (e) {
@@ -44,48 +44,52 @@ class GroupService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return GroupModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            return GroupModel.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList();
+        });
   }
 
-// Request to join private group
-Future<void> requestToJoinGroup(String groupId, String userId) async {
-  try {
-    await _groupsCollection.doc(groupId).update({
-      'pendingMembers': FieldValue.arrayUnion([userId]),
-    });
-  } catch (e) {
-    print('Request to join error: $e');
-    throw e;
+  // Request to join private group
+  Future<void> requestToJoinGroup(String groupId, String userId) async {
+    try {
+      await _groupsCollection.doc(groupId).update({
+        'pendingMembers': FieldValue.arrayUnion([userId]),
+      });
+    } catch (e) {
+      print('Request to join error: $e');
+      throw e;
+    }
   }
-}
 
-// Approve member (creator only)
-Future<void> approveMember(String groupId, String userId) async {
-  try {
-    await _groupsCollection.doc(groupId).update({
-      'pendingMembers': FieldValue.arrayRemove([userId]),
-      'members': FieldValue.arrayUnion([userId]),
-    });
-  } catch (e) {
-    print('Approve member error: $e');
-    throw e;
+  // Approve member (creator only)
+  Future<void> approveMember(String groupId, String userId) async {
+    try {
+      await _groupsCollection.doc(groupId).update({
+        'pendingMembers': FieldValue.arrayRemove([userId]),
+        'members': FieldValue.arrayUnion([userId]),
+      });
+    } catch (e) {
+      print('Approve member error: $e');
+      throw e;
+    }
   }
-}
 
-// Reject member request (creator only)
-Future<void> rejectMember(String groupId, String userId) async {
-  try {
-    await _groupsCollection.doc(groupId).update({
-      'pendingMembers': FieldValue.arrayRemove([userId]),
-    });
-  } catch (e) {
-    print('Reject member error: $e');
-    throw e;
+  // Reject member request (creator only)
+  Future<void> rejectMember(String groupId, String userId) async {
+    try {
+      await _groupsCollection.doc(groupId).update({
+        'pendingMembers': FieldValue.arrayRemove([userId]),
+      });
+    } catch (e) {
+      print('Reject member error: $e');
+      throw e;
+    }
   }
-}
+
   // Get groups where user is member
   Stream<List<GroupModel>> getUserGroups(String userId) {
     return _groupsCollection
@@ -93,10 +97,13 @@ Future<void> rejectMember(String groupId, String userId) async {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return GroupModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            return GroupModel.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList();
+        });
   }
 
   // Join group

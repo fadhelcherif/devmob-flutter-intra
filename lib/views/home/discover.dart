@@ -15,7 +15,6 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   final _searchController = TextEditingController();
-  
 
   String _searchQuery = '';
 
@@ -39,24 +38,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: const Text(
           'Members',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [
           Padding(
@@ -69,7 +65,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   final label = total == null ? 'Members' : '$total Members';
                   return Text(
                     label,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   );
                 },
               ),
@@ -87,18 +86,24 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search members',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                       suffixIcon: _searchQuery.trim().isEmpty
                           ? null
                           : IconButton(
                               onPressed: () {
                                 _searchController.clear();
                               },
-                              icon: const Icon(Icons.close, color: Colors.grey),
+                              icon: Icon(
+                                Icons.close,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                       filled: true,
-                      fillColor: Colors.grey[100],
+                      fillColor: colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -115,7 +120,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         return Center(
                           child: Text(
                             'Failed to load members',
-                            style: TextStyle(color: Colors.grey[700]),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         );
                       }
@@ -136,8 +143,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             return UserModel.fromMap(merged);
                           })
                           .where((user) {
-                             if (user.uid == currentUser.uid) return false;
-    
+                            if (user.uid == currentUser.uid) return false;
+
                             if (query.isEmpty) return true;
                             return user.name.toLowerCase().contains(query) ||
                                 user.email.toLowerCase().contains(query);
@@ -150,7 +157,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             query.isEmpty
                                 ? 'No members found.'
                                 : 'No results for "$query"',
-                            style: TextStyle(color: Colors.grey[700]),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         );
                       }
@@ -158,7 +167,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       return ListView.separated(
                         itemCount: users.length,
                         separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: Colors.grey[200]),
+                            Divider(height: 1, color: theme.dividerColor),
                         itemBuilder: (context, index) {
                           return _buildUserTile(users[index]);
                         },
@@ -172,17 +181,20 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget _buildUserTile(UserModel user) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final imageUrl = user.profileImageUrl;
 
     final avatar = (imageUrl != null && imageUrl.trim().isNotEmpty)
         ? CircleAvatar(radius: 22, backgroundImage: NetworkImage(imageUrl))
         : CircleAvatar(
             radius: 22,
-            backgroundColor: Colors.grey[200],
+            backgroundColor: colorScheme.surface,
             child: Text(
               user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: Colors.black,
+              style: TextStyle(
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -198,7 +210,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         (user.bio != null && user.bio!.trim().isNotEmpty)
             ? user.bio!
             : user.email,
-        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -206,26 +218,27 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         spacing: 8,
         children: [
           OutlinedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatDetailScreen(
-                        userName: user.name, 
-                        userImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150', 
-                        receiverId: user.uid,
-                      ),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatDetailScreen(
+                    userName: user.name,
+                    userImage:
+                        user.profileImageUrl ?? 'https://i.pravatar.cc/150',
+                    receiverId: user.uid,
+                  ),
                 ),
-                child: const Text('Message'),
-              ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Message'),
+          ),
           OutlinedButton(
             onPressed: () {
               Navigator.push(

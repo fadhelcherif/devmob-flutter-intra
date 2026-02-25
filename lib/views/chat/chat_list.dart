@@ -18,30 +18,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final currentUser = _authService.currentUser;
-    
+
     if (currentUser == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please login')),
-      );
+      return const Scaffold(body: Center(child: Text('Please login')));
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: const Text(
           'Messages',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
       body: Column(
@@ -52,10 +47,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -64,7 +62,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               ),
             ),
           ),
-          
+
           // Chats list from Firebase
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -82,8 +80,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
                 if (chats.isEmpty) {
                   return const Center(
-                    child: Text('No conversations yet.\nStart messaging from Discover!'),
-                    
+                    child: Text(
+                      'No conversations yet.\nStart messaging from Discover!',
+                    ),
                   );
                 }
 
@@ -117,15 +116,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
         }
 
         final userData = snapshot.data!.data() as Map<String, dynamic>?;
-        final user = userData != null 
-            ? UserModel.fromMap(userData)
-            : null;
+        final user = userData != null ? UserModel.fromMap(userData) : null;
 
         final String name = user?.name ?? 'Unknown';
-        final String image = user?.profileImageUrl ?? 'https://i.pravatar.cc/150';
+        final String image =
+            user?.profileImageUrl ?? 'https://i.pravatar.cc/150';
         final String lastMessage = chat['lastMessage'] ?? '';
         final Timestamp? lastTime = chat['lastMessageTime'];
-        final String time = lastTime != null 
+        final String time = lastTime != null
             ? _formatTime(lastTime.toDate())
             : '';
 
@@ -136,15 +134,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
           title: Text(
             name,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           subtitle: Text(
             lastMessage,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 13,
             ),
             maxLines: 1,
@@ -153,7 +148,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           trailing: Text(
             time,
             style: TextStyle(
-              color: Colors.grey[500],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),

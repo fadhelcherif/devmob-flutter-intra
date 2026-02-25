@@ -15,7 +15,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _descriptionController = TextEditingController();
   final GroupService _groupService = GroupService();
   final AuthService _authService = AuthService();
-  
+
   bool _isPublic = true;
   bool _isLoading = false;
 
@@ -56,9 +56,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -71,22 +71,19 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: const Icon(Icons.close),
         ),
         title: const Text(
           'Create a group',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
       ),
       body: Padding(
@@ -97,48 +94,42 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             // Title field
             const Text(
               'Title',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
                 hintText: 'Fundamentals of Design',
-                hintStyle: TextStyle(color: Colors.grey[400]),
+                hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF2196F3)),
+                  borderSide: BorderSide(color: theme.primaryColor),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Description field
             const Text(
               'Description',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF2196F3), width: 2),
+                border: Border.all(color: theme.primaryColor, width: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextField(
@@ -146,27 +137,24 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 maxLines: 6,
                 decoration: InputDecoration(
                   hintText: 'Vulture Live Stream',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: colorScheme.surface,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(12),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Access section
             const Text(
               'Access',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 12),
-            
+
             // Open/Private buttons
             Row(
               children: [
@@ -179,11 +167,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: _isPublic ? const Color(0xFF2196F3) : Colors.grey[300]!,
+                        color: _isPublic
+                            ? theme.primaryColor
+                            : theme.dividerColor,
                         width: _isPublic ? 2 : 1,
                       ),
-                      backgroundColor: _isPublic ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
-                      foregroundColor: _isPublic ? const Color(0xFF2196F3) : Colors.black,
+                      backgroundColor: _isPublic
+                          ? theme.primaryColor.withOpacity(0.1)
+                          : null,
+                      foregroundColor: _isPublic
+                          ? theme.primaryColor
+                          : colorScheme.onSurface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -202,11 +196,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: !_isPublic ? const Color(0xFF2196F3) : Colors.grey[300]!,
+                        color: !_isPublic
+                            ? theme.primaryColor
+                            : theme.dividerColor,
                         width: !_isPublic ? 2 : 1,
                       ),
-                      backgroundColor: !_isPublic ? const Color(0xFF2196F3).withOpacity(0.1) : Colors.white,
-                      foregroundColor: !_isPublic ? const Color(0xFF2196F3) : Colors.black,
+                      backgroundColor: !_isPublic
+                          ? theme.primaryColor.withOpacity(0.1)
+                          : null,
+                      foregroundColor: !_isPublic
+                          ? theme.primaryColor
+                          : colorScheme.onSurface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -217,22 +217,22 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Description text
             Text(
-              _isPublic 
-                ? 'Anyone can join the space as long as they are the member of community.'
-                : 'Only invited members can join this group.',
+              _isPublic
+                  ? 'Anyone can join the space as long as they are the member of community.'
+                  : 'Only invited members can join this group.',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
-            
+
             const Spacer(),
-            
+
             // Create button
             SizedBox(
               width: double.infinity,
@@ -240,14 +240,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _createGroup,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(color: colorScheme.onPrimary)
                     : const Text(
                         'Create',
                         style: TextStyle(

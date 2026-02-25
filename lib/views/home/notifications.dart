@@ -88,42 +88,40 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Color _getIconColor(String type) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (type) {
       case 'like':
-        return Colors.red;
+        return colorScheme.error;
       case 'comment':
-        return Colors.blue;
+        return colorScheme.primary;
       case 'follow':
-        return Colors.green;
+        return colorScheme.secondary;
       case 'group_invite':
-        return Colors.purple;
+        return colorScheme.tertiary;
       case 'message':
-        return Colors.orange;
+        return colorScheme.primary;
       case 'mention':
-        return Colors.teal;
+        return colorScheme.secondary;
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: const Text(
           'Notifications',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [
           TextButton(
@@ -134,10 +132,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 }
               });
             },
-            child: const Text(
-              'Mark all read',
-              style: TextStyle(color: Color(0xFF2196F3)),
-            ),
+            style: TextButton.styleFrom(foregroundColor: theme.primaryColor),
+            child: const Text('Mark all read'),
           ),
         ],
       ),
@@ -152,8 +148,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationTile(Map<String, dynamic> notification) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      color: notification['isRead'] ? Colors.white : const Color(0xFFE3F2FD),
+      color: notification['isRead']
+          ? colorScheme.surface
+          : theme.primaryColor.withOpacity(0.08),
       child: ListTile(
         leading: Stack(
           children: [
@@ -169,11 +170,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 decoration: BoxDecoration(
                   color: _getIconColor(notification['type']),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: colorScheme.surface, width: 2),
                 ),
                 child: Icon(
                   _getIcon(notification['type']),
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                   size: 10,
                 ),
               ),
@@ -182,7 +183,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         title: RichText(
           text: TextSpan(
-            style: const TextStyle(color: Colors.black, fontSize: 14),
+            style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
             children: [
               TextSpan(
                 text: notification['user'],
@@ -196,10 +197,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             notification['time'],
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
           ),
         ),
         trailing: notification['isRead']
@@ -207,8 +205,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             : Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF2196F3),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor,
                   shape: BoxShape.circle,
                 ),
               ),

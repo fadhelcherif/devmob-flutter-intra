@@ -6,16 +6,16 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF90CAF9), // Light blue top
-              Color(0xFFE3F2FD), // Very light blue bottom
-            ],
+            colors: [theme.primaryColor.withOpacity(0.55), colorScheme.surface],
           ),
         ),
         child: SafeArea(
@@ -26,27 +26,27 @@ class WelcomeScreen extends StatelessWidget {
                 flex: 2,
                 child: Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF90CAF9),
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor,
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(60),
                       bottomRight: Radius.circular(60),
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       'Socialize',
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
                   ),
                 ),
               ),
-              
+
               // Bottom section with text and button
               Expanded(
                 flex: 1,
@@ -58,11 +58,7 @@ class WelcomeScreen extends StatelessWidget {
                       const Text(
                         'Discover & join groups easily\nthat fit your needs perfectly!',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                          height: 1.5,
-                        ),
+                        style: TextStyle(fontSize: 16, height: 1.5),
                       ),
                       const SizedBox(height: 32),
                       SizedBox(
@@ -78,8 +74,8 @@ class WelcomeScreen extends StatelessWidget {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2196F3),
-                            foregroundColor: Colors.white,
+                            backgroundColor: theme.primaryColor,
+                            foregroundColor: colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25),
                             ),

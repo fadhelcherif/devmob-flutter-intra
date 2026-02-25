@@ -20,12 +20,12 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkAuthState() async {
     // Wait 2 seconds for splash effect
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (!mounted) return;
-    
+
     // Check if user is already logged in
     User? user = FirebaseAuth.instance.currentUser;
-    
+
     if (user != null) {
       // User is logged in, go to home
       Navigator.pushReplacement(
@@ -43,11 +43,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF90CAF9), // Light blue
+      backgroundColor: theme.primaryColor,
       body: Center(
         child: CircularProgressIndicator(
-          color: Colors.white,
+          color: colorScheme.onPrimary,
           strokeWidth: 4,
         ),
       ),

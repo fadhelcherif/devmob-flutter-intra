@@ -23,15 +23,15 @@ class AuthService {
     try {
       print('Starting registration...');
       print('Email: $email, Name: $name, Role: $role');
-      
+
       // Create user in Firebase Auth
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
       print('Auth user created: ${result.user?.uid}');
-      
+
       User? user = result.user;
       if (user != null) {
         // Create user document in Firestore
@@ -42,12 +42,12 @@ class AuthService {
           role: role,
           createdAt: DateTime.now(),
         );
-        
+
         print('Saving to Firestore...');
         print('User data: ${newUser.toMap()}');
-        
+
         await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
-        
+
         print('Firestore save successful');
         return newUser;
       }
@@ -67,25 +67,30 @@ class AuthService {
     try {
       print('Starting login...');
       print('Email: $email');
-      
+
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
       print('Auth login successful: ${result.user?.uid}');
-      
+
       User? user = result.user;
       if (user != null) {
         print('Fetching user data from Firestore...');
-        
+
         // Get user data from Firestore
-        DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
-        
+        DocumentSnapshot doc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
         print('Firestore doc exists: ${doc.exists}');
-        
+
         if (doc.exists) {
-          UserModel userData = UserModel.fromMap(doc.data() as Map<String, dynamic>);
+          UserModel userData = UserModel.fromMap(
+            doc.data() as Map<String, dynamic>,
+          );
           print('User data loaded: ${userData.name}');
           return userData;
         } else {
@@ -103,7 +108,10 @@ class AuthService {
   // Get user data
   Future<UserModel?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>);
       }
@@ -114,20 +122,20 @@ class AuthService {
   }
 
   // Update user profile
-Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
-  try {
-    // Update user document
-    await _firestore.collection('users').doc(uid).update(data);
-    
-    // If name changed, update all posts
-    if (data.containsKey('name')) {
-      await PostService().updateUserNameInPosts(uid, data['name']);
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
+    try {
+      // Update user document
+      await _firestore.collection('users').doc(uid).update(data);
+
+      // If name changed, update all posts
+      if (data.containsKey('name')) {
+        await PostService().updateUserNameInPosts(uid, data['name']);
+      }
+    } catch (e) {
+      print('Update user error: $e');
+      throw e;
     }
-  } catch (e) {
-    print('Update user error: $e');
-    throw e;
   }
-}
 
   // Logout
   Future<void> logout() async {

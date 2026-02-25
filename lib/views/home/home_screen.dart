@@ -10,6 +10,7 @@ import '../../models/post_model.dart';
 import '../../services/post_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
+
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -21,122 +22,128 @@ class _FeedScreenState extends State<FeedScreen> {
   final PostService _postService = PostService();
   final AuthService _authService = AuthService();
   int _selectedIndex = 0;
- Future<void> _editPost(PostModel post) async {
-  final TextEditingController editController = TextEditingController(text: post.content);
-  
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Edit Post'),
-      content: TextField(
-        controller: editController,
-        maxLines: 5,
-        decoration: const InputDecoration(
-          hintText: 'Edit your post...',
-          border: OutlineInputBorder(),
+  Future<void> _editPost(PostModel post) async {
+    final TextEditingController editController = TextEditingController(
+      text: post.content,
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Post'),
+        content: TextField(
+          controller: editController,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            hintText: 'Edit your post...',
+            border: OutlineInputBorder(),
+          ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (editController.text.trim().isNotEmpty) {
-              try {
-                await _postService.editPost(post.id, editController.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Post updated!')),
-                );
-              } catch (e) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (editController.text.trim().isNotEmpty) {
+                try {
+                  await _postService.editPost(
+                    post.id,
+                    editController.text.trim(),
+                  );
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post updated!')),
+                  );
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
               }
-            }
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    ),
-  );
-}
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
 
-Future<void> _deletePost(PostModel post) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Post'),
-      content: const Text('Are you sure you want to delete this post?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Delete', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
+  Future<void> _deletePost(PostModel post) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-  if (confirm == true) {
-    try {
-      await _postService.deletePost(post.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post deleted')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+    if (confirm == true) {
+      try {
+        await _postService.deletePost(post.id);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
-}
+
   UserModel? _currentUser;
 
-@override
-void initState() {
-  super.initState();
-  _loadCurrentUser();
-}
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
 
-Future<void> _loadCurrentUser() async {
-  UserModel? user = await _authService.getUserData(
-    _authService.currentUser!.uid,
-  );
-  setState(() {
-    _currentUser = user;
-  });
-}
+  Future<void> _loadCurrentUser() async {
+    UserModel? user = await _authService.getUserData(
+      _authService.currentUser!.uid,
+    );
+    setState(() {
+      _currentUser = user;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
             onPressed: () {
               Scaffold.of(context).openDrawer();
             },
-            icon: const Icon(Icons.menu, color: Colors.black),
+            icon: const Icon(Icons.menu),
           ),
         ),
         title: const Text(
           'MyCorp',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -146,7 +153,7 @@ Future<void> _loadCurrentUser() async {
                 MaterialPageRoute(builder: (context) => const MessagesScreen()),
               );
             },
-            icon: const Icon(Icons.people_outline, color: Colors.black),
+            icon: const Icon(Icons.people_outline),
           ),
         ],
       ),
@@ -186,7 +193,8 @@ Future<void> _loadCurrentUser() async {
           // Reload user when coming back
           _loadCurrentUser();
         },
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: theme.primaryColor,
+        foregroundColor: colorScheme.onPrimary,
         child: const Icon(Icons.add, size: 32),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -195,7 +203,7 @@ Future<void> _loadCurrentUser() async {
           setState(() {
             _selectedIndex = index;
           });
-          
+
           switch (index) {
             case 0:
               break;
@@ -214,27 +222,20 @@ Future<void> _loadCurrentUser() async {
             case 3:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
               );
               break;
           }
         },
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF2196F3),
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: theme.primaryColor,
+        unselectedItemColor: colorScheme.onSurfaceVariant,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.group),
-            label: 'My Groups',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Discover',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.group), label: 'My Groups'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Discover'),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_outlined),
             label: 'Notifications',
@@ -249,174 +250,207 @@ Future<void> _loadCurrentUser() async {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => PostDetailScreen(post: post),
-          ),
+          MaterialPageRoute(builder: (context) => PostDetailScreen(post: post)),
         );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
+            bottom: BorderSide(color: Theme.of(context).dividerColor),
           ),
         ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-  children: [
-    CircleAvatar(
-      radius: 24,
-      backgroundImage: NetworkImage(
-        post.userId == _authService.currentUser?.uid && _currentUser?.profileImageUrl != null
-            ? _currentUser!.profileImageUrl!
-            : post.userImage,
-      ),
-    ),
-    const SizedBox(width: 12),
-    Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            post.userName,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          Text(
-            _getTimeAgo(post.createdAt),
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    ),
-    // Show menu only for post creator
-    if (post.userId == _authService.currentUser?.uid)
-      PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'edit') {
-            _editPost(post);
-          } else if (value == 'delete') {
-            _deletePost(post);
-          }
-        },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Icon(Icons.edit, size: 20),
-                SizedBox(width: 8),
-                Text('Edit'),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundImage: NetworkImage(
+                    post.userId == _authService.currentUser?.uid &&
+                            _currentUser?.profileImageUrl != null
+                        ? _currentUser!.profileImageUrl!
+                        : post.userImage,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        _getTimeAgo(post.createdAt),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Show menu only for post creator
+                if (post.userId == _authService.currentUser?.uid)
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _editPost(post);
+                      } else if (value == 'delete') {
+                        _deletePost(post);
+                      }
+                    },
+                    itemBuilder: (context) {
+                      final colorScheme = Theme.of(context).colorScheme;
+                      return [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete,
+                                color: colorScheme.error,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: colorScheme.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ];
+                    },
+                  ),
               ],
             ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, color: Colors.red, size: 20),
-                SizedBox(width: 8),
-                Text('Delete', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
-      ),
-  ],
-),
-          
-          const SizedBox(height: 12),
-          
-          Text(
-            post.content,
-            style: const TextStyle(fontSize: 14, height: 1.4),
-          ),
-          
-          if (post.imageUrl != null) ...[
+
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                post.imageUrl!,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
+
+            Text(
+              post.content,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+
+            if (post.imageUrl != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  post.imageUrl!,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               ),
+            ],
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Icon(
+                  Icons.thumb_up,
+                  size: 16,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${post.likes.length} Likes',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.chat_bubble_outline,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${post.commentsCount} comments',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildActionButton(
+                  Icons.thumb_up_outlined,
+                  'Like',
+                  onTap: () => _likePost(post),
+                ),
+
+                _buildActionButton(
+                  Icons.chat_bubble_outline,
+                  'Comment',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostDetailScreen(post: post),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            children: [
-              Icon(Icons.thumb_up, size: 16, color: const Color(0xFF2196F3)),
-              const SizedBox(width: 4),
-              Text(
-                '${post.likes.length} Likes',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
-              const Spacer(),
-              Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                '${post.commentsCount} comments',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildActionButton(
-                Icons.thumb_up_outlined, 
-                'Like',
-                onTap: () => _likePost(post),
-              ),
-              
-              _buildActionButton(
-                Icons.chat_bubble_outline, 
-                'Comment',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PostDetailScreen(post: post),
-                    ),
-                  );
-                },
-              ),
-             
-            ],
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, {VoidCallback? onTap}) {
+  Widget _buildActionButton(
+    IconData icon,
+    String label, {
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.grey[600], size: 24),
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 24,
+          ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
@@ -430,15 +464,15 @@ Future<void> _loadCurrentUser() async {
         await _postService.likePost(post.id, userId);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   String _getTimeAgo(DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);
-    
+
     if (difference.inMinutes < 1) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {

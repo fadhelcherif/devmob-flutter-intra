@@ -32,7 +32,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     try {
       GroupModel? group = await _groupService.getGroup(widget.groupId);
       String currentUserId = _authService.currentUser!.uid;
-      
+
       setState(() {
         _group = group;
         if (group != null) {
@@ -53,85 +53,90 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     try {
       if (_group!.isPublic) {
         // Public group - join immediately
-        await _groupService.joinGroup(widget.groupId, _authService.currentUser!.uid);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Joined group!')),
+        await _groupService.joinGroup(
+          widget.groupId,
+          _authService.currentUser!.uid,
         );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Joined group!')));
       } else {
         // Private group - send request
-        await _groupService.requestToJoinGroup(widget.groupId, _authService.currentUser!.uid);
+        await _groupService.requestToJoinGroup(
+          widget.groupId,
+          _authService.currentUser!.uid,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Request sent to group creator')),
         );
       }
       _loadGroup();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _leaveGroup() async {
     try {
-      await _groupService.leaveGroup(widget.groupId, _authService.currentUser!.uid);
+      await _groupService.leaveGroup(
+        widget.groupId,
+        _authService.currentUser!.uid,
+      );
       _loadGroup();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Left group')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Left group')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _cancelRequest() async {
     try {
-      await _groupService.rejectMember(widget.groupId, _authService.currentUser!.uid);
+      await _groupService.rejectMember(
+        widget.groupId,
+        _authService.currentUser!.uid,
+      );
       _loadGroup();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request cancelled')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Request cancelled')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_group == null) {
-      return const Scaffold(
-        body: Center(child: Text('Group not found')),
-      );
+      return const Scaffold(body: Center(child: Text('Group not found')));
     }
 
     final group = _group!;
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: const Text(
           'Group',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [
           if (_isMember)
@@ -140,15 +145,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => GroupDetailScreen(groupId: widget.groupId),
+                    builder: (context) =>
+                        GroupDetailScreen(groupId: widget.groupId),
                   ),
                 );
               },
-              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2196F3)),
-              label: const Text(
-                'Chat',
-                style: TextStyle(color: Color(0xFF2196F3)),
-              ),
+              style: TextButton.styleFrom(foregroundColor: theme.primaryColor),
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text('Chat'),
             ),
         ],
       ),
@@ -163,12 +167,12 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: const Color(0xFF2196F3),
+                    backgroundColor: theme.primaryColor,
                     child: Text(
                       group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 40,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -188,13 +192,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       Icon(
                         group.isPublic ? Icons.public : Icons.lock,
                         size: 16,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         group.isPublic ? 'Public Group' : 'Private Group',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurfaceVariant,
                           fontSize: 14,
                         ),
                       ),
@@ -205,7 +209,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     group.description,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey[700],
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
                     ),
                   ),
@@ -221,7 +225,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 children: [
                   _buildStat('${group.members.length}', 'Members'),
                   _buildStatDivider(),
-                  if (!group.isPublic) _buildStat('${group.pendingMembers.length}', 'Pending'),
+                  if (!group.isPublic)
+                    _buildStat('${group.pendingMembers.length}', 'Pending'),
                   if (!group.isPublic) _buildStatDivider(),
                   _buildStat('0', 'Posts'),
                 ],
@@ -243,17 +248,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             ),
 
             // Show pending requests if creator
-            if (_isCreator && !group.isPublic && group.pendingMembers.isNotEmpty) ...[
+            if (_isCreator &&
+                !group.isPublic &&
+                group.pendingMembers.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Divider(),
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'Pending Requests',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
               _buildPendingList(),
@@ -269,6 +273,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Widget _buildBottomButton() {
     if (_isMember) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Padding(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
@@ -277,8 +282,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           child: ElevatedButton(
             onPressed: _leaveGroup,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
             ),
             child: const Text('Leave Group'),
           ),
@@ -287,6 +292,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
 
     if (_isPending) {
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
       return Padding(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
@@ -295,8 +302,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           child: ElevatedButton(
             onPressed: _cancelRequest,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.secondary,
+              foregroundColor: colorScheme.onSecondary,
             ),
             child: const Text('Cancel Request'),
           ),
@@ -304,6 +311,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       );
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SizedBox(
@@ -312,8 +321,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         child: ElevatedButton(
           onPressed: _joinGroup,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2196F3),
-            foregroundColor: Colors.white,
+            backgroundColor: theme.primaryColor,
+            foregroundColor: colorScheme.onPrimary,
           ),
           child: Text(_group!.isPublic ? 'Join Group' : 'Request to Join'),
         ),
@@ -340,14 +349,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
+                    icon: Icon(
+                      Icons.check,
+                      color: Theme.of(context).primaryColor,
+                    ),
                     onPressed: () async {
                       await _groupService.approveMember(widget.groupId, userId);
                       _loadGroup();
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
+                    icon: Icon(
+                      Icons.close,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                     onPressed: () async {
                       await _groupService.rejectMember(widget.groupId, userId);
                       _loadGroup();
@@ -367,16 +382,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 14,
           ),
         ),
@@ -388,7 +400,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     return Container(
       height: 30,
       width: 1,
-      color: Colors.grey[300],
+      color: Theme.of(context).dividerColor,
     );
   }
 }

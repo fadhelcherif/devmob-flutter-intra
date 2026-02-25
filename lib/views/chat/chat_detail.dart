@@ -52,15 +52,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       await _chatService.sendMessage(
         senderId: _currentUser!.uid,
         senderName: _currentUser!.name,
-        senderImage: _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
+        senderImage:
+            _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
         receiverId: widget.receiverId,
         content: _messageController.text.trim(),
       );
       _messageController.clear();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -78,43 +79,46 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
 
     try {
-      String? imageUrl = await _storageService.uploadImageFile(image, 'chat_images');
-      
+      String? imageUrl = await _storageService.uploadImageFile(
+        image,
+        'chat_images',
+      );
+
       Navigator.pop(context); // Close loading
 
       if (imageUrl != null) {
         await _chatService.sendImageMessage(
           senderId: _currentUser!.uid,
           senderName: _currentUser!.name,
-          senderImage: _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
+          senderImage:
+              _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
           receiverId: widget.receiverId,
           imageUrl: imageUrl,
         );
       }
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error uploading image: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (_currentUser == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: Row(
           children: [
@@ -125,11 +129,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             const SizedBox(width: 12),
             Text(
               widget.userName,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -139,7 +139,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           // Messages list
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: _chatService.getMessages(_currentUser!.uid, widget.receiverId),
+              stream: _chatService.getMessages(
+                _currentUser!.uid,
+                widget.receiverId,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -170,15 +173,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               },
             ),
           ),
-          
+
           // Input field - SIMPLIFIED
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: theme.shadowColor.withOpacity(0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -190,7 +193,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   // Image button
                   IconButton(
                     onPressed: _sendImage,
-                    icon: const Icon(Icons.image, color: Color(0xFF2196F3)),
+                    icon: Icon(Icons.image, color: theme.primaryColor),
                   ),
                   // Text input
                   Expanded(
@@ -198,9 +201,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       controller: _messageController,
                       decoration: InputDecoration(
                         hintText: 'Message...',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: colorScheme.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25),
                           borderSide: BorderSide.none,
@@ -215,7 +220,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   // Send button
                   IconButton(
                     onPressed: _sendMessage,
-                    icon: const Icon(Icons.send, color: Color(0xFF2196F3)),
+                    icon: Icon(Icons.send, color: theme.primaryColor),
                   ),
                 ],
               ),
@@ -227,78 +232,86 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildMessageBubble(MessageModel message, bool isMe) {
-  // Check if message is an image by checking if it has imageUrl in Firestore
-  // We need to get the raw data to check for imageUrl
-  return FutureBuilder<DocumentSnapshot>(
-    future: FirebaseFirestore.instance
-        .collection('chats')
-        .doc(_chatService.getChatId(_currentUser!.uid, widget.receiverId))
-        .collection('messages')
-        .doc(message.id)
-        .get(),
-    builder: (context, snapshot) {
-      bool isImage = false;
-      String? imageUrl;
-      
-      if (snapshot.hasData && snapshot.data!.exists) {
-        final data = snapshot.data!.data() as Map<String, dynamic>?;
-        isImage = data?['isImage'] == true;
-        imageUrl = data?['imageUrl'];
-      }
+    // Check if message is an image by checking if it has imageUrl in Firestore
+    // We need to get the raw data to check for imageUrl
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('chats')
+          .doc(_chatService.getChatId(_currentUser!.uid, widget.receiverId))
+          .collection('messages')
+          .doc(message.id)
+          .get(),
+      builder: (context, snapshot) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
 
-      return Align(
-        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.75,
-          ),
-          decoration: BoxDecoration(
-            color: isMe ? const Color(0xFF2196F3) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: isImage && imageUrl != null
-                ? Image.network(
-                    imageUrl,
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        width: 200,
-                        height: 200,
-                        padding: const EdgeInsets.all(20),
-                        child: const CircularProgressIndicator(),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 200,
-                        height: 100,
-                        padding: const EdgeInsets.all(16),
-                        child: const Text('Failed to load image'),
-                      );
-                    },
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Text(
-                      message.content,
-                      style: TextStyle(
-                        color: isMe ? Colors.white : Colors.black87,
-                        fontSize: 14,
+        bool isImage = false;
+        String? imageUrl;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          isImage = data?['isImage'] == true;
+          imageUrl = data?['imageUrl'];
+        }
+
+        return Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: isMe ? theme.primaryColor : colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: isImage && imageUrl != null
+                  ? Image.network(
+                      imageUrl,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 200,
+                          height: 200,
+                          padding: const EdgeInsets.all(20),
+                          child: const CircularProgressIndicator(),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 200,
+                          height: 100,
+                          padding: const EdgeInsets.all(16),
+                          child: const Text('Failed to load image'),
+                        );
+                      },
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Text(
+                        message.content,
+                        style: TextStyle(
+                          color: isMe
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSurface,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                  ),
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {

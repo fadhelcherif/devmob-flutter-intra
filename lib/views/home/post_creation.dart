@@ -19,7 +19,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final PostService _postService = PostService();
   final AuthService _authService = AuthService();
   final StorageService _storageService = StorageService();
-  
+
   XFile? _selectedImage;
   bool _isLoading = false;
   String _uploadStatus = '';
@@ -39,6 +39,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -47,17 +49,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               children: <Widget>[
                 const Text(
                   'Choose Image Source',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Tip: Use Camera on emulator for quick testing',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -65,13 +64,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3).withOpacity(0.1),
+                      color: theme.primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.photo_camera,
-                      color: Color(0xFF2196F3),
-                    ),
+                    child: Icon(Icons.photo_camera, color: theme.primaryColor),
                   ),
                   title: const Text(
                     'Camera',
@@ -87,12 +83,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
+                      color: colorScheme.surface,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.photo_library,
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   title: const Text('Gallery'),
@@ -141,28 +137,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       if (user != null) {
         String? imageUrl;
-        
+
         // Upload image if selected
         if (_selectedImage != null) {
           setState(() {
             _uploadStatus = 'Compressing image...';
           });
-          
-          await Future.delayed(const Duration(milliseconds: 100)); // Allow UI to update
-          
+
+          await Future.delayed(
+            const Duration(milliseconds: 100),
+          ); // Allow UI to update
+
           setState(() {
             _uploadStatus = 'Uploading image...';
           });
-          
+
           imageUrl = await _storageService.uploadImageFile(
-            _selectedImage!, 
-            'posts/${user.uid}'
+            _selectedImage!,
+            'posts/${user.uid}',
           );
-          
+
           if (imageUrl == null) {
             throw Exception('Failed to upload image');
           }
-          
+
           setState(() {
             _uploadStatus = 'Creating post...';
           });
@@ -186,9 +184,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -202,51 +200,41 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F9FF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F9FF),
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: const Icon(Icons.close),
         ),
-        title: _isLoading
-            ? Text(
-                _uploadStatus.isEmpty ? 'Processing...' : _uploadStatus,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              )
-            : const Text(
-                'Post',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+        title: Text(
+          _isLoading
+              ? (_uploadStatus.isEmpty ? 'Processing...' : _uploadStatus)
+              : 'Post',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               onPressed: _isLoading ? null : _createPost,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                foregroundColor: Colors.white,
+                backgroundColor: theme.primaryColor,
+                foregroundColor: colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24),
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         strokeWidth: 2,
                       ),
                     )
@@ -267,17 +255,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     controller: _textController,
                     maxLines: null,
                     textAlignVertical: TextAlignVertical.top,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: "What's in your mind?",
                       hintStyle: TextStyle(
-                        color: Colors.grey,
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 16,
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  
+
                   // Selected image preview
                   if (_selectedImage != null) ...[
                     const SizedBox(height: 16),
@@ -306,13 +294,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                 },
                                 icon: Container(
                                   padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black54,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surface.withOpacity(0.8),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.close,
-                                    color: Colors.white,
+                                    color: colorScheme.onSurface,
                                     size: 20,
                                   ),
                                 ),
@@ -328,29 +316,33 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
           ),
-          
+
           // Bottom toolbar
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-              ),
+              color: colorScheme.surface,
+              border: Border(top: BorderSide(color: theme.dividerColor)),
             ),
             child: Row(
               children: [
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.keyboard_arrow_up, color: Colors.grey),
+                  icon: Icon(
+                    Icons.keyboard_arrow_up,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 IconButton(
                   onPressed: _showImageSourceDialog,
-                  icon: const Icon(Icons.image, color: Color(0xFF2196F3)),
+                  icon: Icon(Icons.image, color: theme.primaryColor),
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.attach_file, color: Colors.grey),
+                  icon: Icon(
+                    Icons.attach_file,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

@@ -21,9 +21,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_isLoading) return; // Prevent multiple clicks
-    
+
     print('Login button pressed');
-    
+
     // Validation - Check for empty fields
     if (_emailController.text.trim().isEmpty) {
       setState(() {
@@ -46,16 +46,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       print('Attempting login with email: ${_emailController.text.trim()}');
-      
-      UserModel? user = await _authService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw Exception('Connection timeout. Please check your internet connection.');
-        },
-      );
+
+      UserModel? user = await _authService
+          .login(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception(
+                'Connection timeout. Please check your internet connection.',
+              );
+            },
+          );
 
       print('Login result: ${user != null ? "Success" : "Failed"}');
 
@@ -78,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print('Login error caught: $e');
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
         String errorMsg = e.toString();
@@ -103,8 +107,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -112,43 +118,38 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              
+
               const Text(
                 'Discover your favorite\nspaces with us!',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
                   height: 1.3,
                 ),
               ),
-              
+
               const SizedBox(height: 48),
-              
+
               // Error message
               if (_errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red[100],
+                    color: colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: Colors.red[800]),
+                    style: TextStyle(color: colorScheme.onErrorContainer),
                   ),
                 ),
-              
+
               if (_errorMessage != null) const SizedBox(height: 16),
-              
+
               // Email field
               const Text(
                 'Email',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -156,31 +157,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: 'Type your email',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: colorScheme.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2196F3)),
+                    borderSide: BorderSide(color: theme.primaryColor),
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Password field
               const Text(
                 'Password',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -188,23 +188,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Type your password',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: colorScheme.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2196F3)),
+                    borderSide: BorderSide(color: theme.primaryColor),
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -217,29 +220,26 @@ class _LoginScreenState extends State<LoginScreen> {
                             _rememberMe = value ?? false;
                           });
                         },
-                        activeColor: const Color(0xFF2196F3),
+                        activeColor: theme.primaryColor,
                       ),
-                      const Text(
-                        'Remember me',
-                        style: TextStyle(fontSize: 14),
-                      ),
+                      const Text('Remember me', style: TextStyle(fontSize: 14)),
                     ],
                   ),
                   TextButton(
                     onPressed: () {},
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.primaryColor,
+                    ),
                     child: const Text(
                       'Forgot Password',
-                      style: TextStyle(
-                        color: Color(0xFF2196F3),
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(fontSize: 14),
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Login button
               SizedBox(
                 width: double.infinity,
@@ -247,14 +247,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: colorScheme.onPrimary)
                       : const Text(
                           'Login',
                           style: TextStyle(
@@ -264,9 +264,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Create account link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -276,15 +276,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SignupScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SignupScreen(),
+                        ),
                       );
                     },
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.primaryColor,
+                    ),
                     child: const Text(
                       'Create account',
-                      style: TextStyle(
-                        color: Color(0xFF2196F3),
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

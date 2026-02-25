@@ -12,11 +12,8 @@ class GroupModel {
   final DateTime createdAt;
   final List<String> pendingMembers; // For private groups
 
-
-
-// Add to toMap
-// Add to fromMap
-
+  // Add to toMap
+  // Add to fromMap
 
   GroupModel({
     required this.id,
@@ -29,9 +26,8 @@ class GroupModel {
     this.members = const [],
     required this.createdAt,
     // Add to constructor
-this.pendingMembers = const [],
+    this.pendingMembers = const [],
   });
-  
 
   Map<String, dynamic> toMap() {
     return {
@@ -43,9 +39,8 @@ this.pendingMembers = const [],
       'isPublic': isPublic,
       'members': members,
       'createdAt': Timestamp.fromDate(createdAt),
-      
-'pendingMembers': pendingMembers,
 
+      'pendingMembers': pendingMembers,
     };
   }
 
@@ -63,5 +58,4 @@ this.pendingMembers = const [],
       pendingMembers: List<String>.from(map['pendingMembers'] ?? []),
     );
   }
-  
 }

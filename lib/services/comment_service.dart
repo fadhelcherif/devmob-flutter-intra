@@ -19,13 +19,13 @@ class CommentService {
           .doc(postId)
           .collection('comments')
           .add({
-        'postId': postId,
-        'userId': userId,
-        'userName': userName,
-        'userImage': userImage,
-        'content': content,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
+            'postId': postId,
+            'userId': userId,
+            'userName': userName,
+            'userImage': userImage,
+            'content': content,
+            'createdAt': DateTime.now().toIso8601String(),
+          });
 
       // Update comment with its ID
       await commentRef.update({'id': commentRef.id});
@@ -51,10 +51,10 @@ class CommentService {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return CommentModel.fromMap(doc.data());
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            return CommentModel.fromMap(doc.data());
+          }).toList();
+        });
   }
 
   // Delete a comment

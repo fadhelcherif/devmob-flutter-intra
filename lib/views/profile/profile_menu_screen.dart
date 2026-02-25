@@ -1,3 +1,4 @@
+import 'package:devmobi_flutter_intra/providers/theme_provider.dart';
 import 'package:devmobi_flutter_intra/views/home/discover.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
@@ -5,7 +6,7 @@ import '../../models/user_model.dart';
 import 'user_profile.dart';
 import 'edit_profile.dart';
 import '../group/create_group.dart';
-
+import 'settings.dart';
 
 class ProfileMenuScreen extends StatefulWidget {
   const ProfileMenuScreen({super.key});
@@ -35,6 +36,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -44,10 +46,11 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                 CircleAvatar(
+                  CircleAvatar(
                     radius: 40,
                     backgroundImage: NetworkImage(
-                      _user?.profileImageUrl ?? 'https://i.pravatar.cc/150?img=5',
+                      _user?.profileImageUrl ??
+                          'https://i.pravatar.cc/150?img=5',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -69,40 +72,41 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF2196F3)),
+                      side: BorderSide(color: theme.primaryColor),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'View Profile',
-                      style: TextStyle(color: Color(0xFF2196F3)),
+                      style: TextStyle(color: theme.primaryColor),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const Divider(),
-            
+
             // Menu items
             _buildMenuItem(Icons.group_add, 'Create Group', () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const CreateGroupScreen(),
+                ),
               );
             }),
-            
+
             _buildMenuItem(Icons.people, 'Members', () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const DiscoverScreen()),
               );
             }),
-            
-            
+
             const Divider(),
-            
+
             _buildMenuItem(Icons.manage_accounts, 'Manage Profile', () {
               if (_user != null) {
                 Navigator.push(
@@ -113,11 +117,13 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
                 ).then((_) => _loadUser());
               }
             }),
-            
+
             _buildMenuItem(Icons.settings, 'Settings', () {
-              // TODO: Settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             }),
-            
             _buildMenuItem(Icons.logout, 'Logout', () async {
               await AuthService().logout();
               Navigator.pushReplacementNamed(context, '/login');
@@ -130,11 +136,11 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
 
   Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
-      leading: Icon(icon, color: Colors.grey[700]),
-      title: Text(
-        title,
-        style: const  TextStyle(fontSize: 16),
+      leading: Icon(
+        icon,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
+      title: Text(title, style: const TextStyle(fontSize: 16)),
       onTap: onTap,
     );
   }

@@ -51,6 +51,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -60,21 +63,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: Text(
           _isOwnProfile ? 'My Profile' : 'Profile',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: _isOwnProfile
             ? [
@@ -87,7 +84,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ).then((_) => _loadUser());
                   },
-                  icon: const Icon(Icons.edit, color: Colors.black),
+                  icon: const Icon(Icons.edit),
                 ),
               ]
             : null,
@@ -124,8 +121,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           _user!.role.name.toUpperCase(),
                           style: TextStyle(
                             color: _user!.role == UserRole.admin
-                                ? Colors.red
-                                : Colors.blue,
+                                ? colorScheme.error
+                                : theme.primaryColor,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -134,7 +131,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Text(
                           _user!.email,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurfaceVariant,
                             fontSize: 14,
                           ),
                         ),
@@ -152,7 +149,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 child: Text(
                   _user!.bio!,
                   style: TextStyle(
-                    color: Colors.grey[700],
+                    color: colorScheme.onSurfaceVariant,
                     fontSize: 14,
                     height: 1.4,
                   ),
@@ -195,8 +192,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         icon: const Icon(Icons.edit),
                         label: const Text('Edit Profile'),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF2196F3)),
-                          foregroundColor: const Color(0xFF2196F3),
+                          side: BorderSide(color: theme.primaryColor),
+                          foregroundColor: theme.primaryColor,
                         ),
                       ),
                     ),
@@ -272,7 +269,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+          ),
+        ),
       ],
     );
   }
@@ -306,23 +309,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.thumb_up, size: 16, color: Colors.grey[600]),
+                Icon(
+                  Icons.thumb_up,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${post.likes.length}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(width: 16),
-                Icon(Icons.comment, size: 16, color: Colors.grey[600]),
+                Icon(
+                  Icons.comment,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${post.commentsCount}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   _getTimeAgo(post.createdAt),
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),

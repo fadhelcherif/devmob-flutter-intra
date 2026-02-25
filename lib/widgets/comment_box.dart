@@ -5,11 +5,8 @@ import '../services/auth_service.dart';
 
 class CommentBox extends StatefulWidget {
   final String postId;
-  
-  const CommentBox({
-    super.key,
-    required this.postId,
-  });
+
+  const CommentBox({super.key, required this.postId});
 
   @override
   State<CommentBox> createState() => _CommentBoxState();
@@ -43,7 +40,7 @@ class _CommentBoxState extends State<CommentBox> {
         );
 
         _commentController.clear();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Comment added successfully!')),
@@ -52,9 +49,9 @@ class _CommentBoxState extends State<CommentBox> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -67,6 +64,9 @@ class _CommentBoxState extends State<CommentBox> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       children: [
         // Comments list
@@ -94,11 +94,11 @@ class _CommentBoxState extends State<CommentBox> {
             final comments = snapshot.data ?? [];
 
             if (comments.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   'No comments yet. Be the first to comment!',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               );
             }
@@ -119,17 +119,16 @@ class _CommentBoxState extends State<CommentBox> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              top: BorderSide(color: Colors.grey[200]!),
-            ),
+            color: colorScheme.surface,
+            border: Border(top: BorderSide(color: theme.dividerColor)),
           ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 18,
                 backgroundImage: NetworkImage(
-                  _authService.currentUser?.photoURL ?? 'https://i.pravatar.cc/150',
+                  _authService.currentUser?.photoURL ??
+                      'https://i.pravatar.cc/150',
                 ),
               ),
               const SizedBox(width: 12),
@@ -138,13 +137,13 @@ class _CommentBoxState extends State<CommentBox> {
                   controller: _commentController,
                   decoration: InputDecoration(
                     hintText: 'Write a comment...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -164,10 +163,7 @@ class _CommentBoxState extends State<CommentBox> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(
-                        Icons.send,
-                        color: Color(0xFF2196F3),
-                      ),
+                    : Icon(Icons.send, color: theme.primaryColor),
               ),
             ],
           ),
@@ -178,7 +174,9 @@ class _CommentBoxState extends State<CommentBox> {
 
   Widget _buildCommentTile(CommentModel comment) {
     final bool isCurrentUser = comment.userId == _authService.currentUser?.uid;
-    
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -196,7 +194,7 @@ class _CommentBoxState extends State<CommentBox> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -223,7 +221,7 @@ class _CommentBoxState extends State<CommentBox> {
                     Text(
                       _formatTimestamp(comment.createdAt),
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
@@ -236,7 +234,7 @@ class _CommentBoxState extends State<CommentBox> {
                         child: Text(
                           'Delete',
                           style: TextStyle(
-                            color: Colors.red[400],
+                            color: colorScheme.error,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -293,13 +291,16 @@ class _CommentBoxState extends State<CommentBox> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ],
       ),

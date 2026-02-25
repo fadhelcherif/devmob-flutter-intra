@@ -17,28 +17,22 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
         ),
         title: const Text(
           'Join group',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.group_add, color: Colors.black),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.group_add)),
         ],
       ),
       body: StreamBuilder<List<GroupModel>>(
@@ -71,6 +65,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
   }
 
   Widget _buildGroupCard(GroupModel group) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -84,7 +81,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF2196F3), width: 1.5),
+          border: Border.all(color: theme.primaryColor, width: 1.5),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -97,38 +94,39 @@ class _GroupsScreenState extends State<GroupsScreen> {
                 Text(
                   group.isPublic ? 'Public' : 'Private',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
-                Icon(Icons.more_vert, color: Colors.grey[600], size: 20),
+                Icon(
+                  Icons.more_vert,
+                  color: colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
               ],
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Group name
             Text(
               group.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Members count
             Text(
               '${group.members.length} members',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Creator
             Row(
               children: [
@@ -146,15 +144,18 @@ class _GroupsScreenState extends State<GroupsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                    color: theme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Host',
                     style: TextStyle(
-                      color: Color(0xFF2196F3),
+                      color: theme.primaryColor,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
