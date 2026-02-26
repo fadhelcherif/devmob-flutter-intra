@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../models/user_model.dart';
 import '../../services/post_service.dart';
 import '../../services/auth_service.dart';
@@ -21,8 +22,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final StorageService _storageService = StorageService();
 
   XFile? _selectedImage;
+  PlatformFile? _selectedDocument;
   bool _isLoading = false;
   String _uploadStatus = '';
+
+  // Pick document (PDF, DOC, etc.)
+  Future<void> _pickDocument() async {
+    FilePickerResult? result = await _storageService.pickDocument();
+    if (result != null) {
+      setState(() {
+        _selectedDocument = result.files.first;
+      });
+    }
+  }
 
   // Show image source dialog
   Future<void> _showImageSourceDialog() async {
@@ -116,11 +128,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  // Create post with or without image
+  // Create post with or without image/document
   Future<void> _createPost() async {
-    if (_textController.text.trim().isEmpty && _selectedImage == null) {
+    if (_textController.text.trim().isEmpty &&
+        _selectedImage == null &&
+        _selectedDocument == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write something or add an image')),
+        const SnackBar(
+          content: Text('Please write something or add an image/document'),
+        ),
       );
       return;
     }
@@ -137,6 +153,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       if (user != null) {
         String? imageUrl;
+        String? documentUrl;
+        String? documentName;
 
         // Upload image if selected
         if (_selectedImage != null) {
@@ -160,11 +178,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           if (imageUrl == null) {
             throw Exception('Failed to upload image');
           }
-
-          setState(() {
-            _uploadStatus = 'Creating post...';
-          });
         }
+
+        // Upload document if selected
+        if (_selectedDocument != null) {
+          setState(() {
+            _uploadStatus = 'Uploading document...';
+          });
+
+          documentUrl = await _storageService.uploadDocument(
+            _selectedDocument!,
+            'documents',
+          );
+          documentName = _selectedDocument!.name;
+        }
+
+        setState(() {
+          _uploadStatus = 'Creating post...';
+        });
 
         // Create post
         await _postService.createPost(
@@ -173,6 +204,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           userImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150',
           content: _textController.text.trim(),
           imageUrl: imageUrl,
+          documentUrl: documentUrl,
+          documentName: documentName,
         );
 
         if (mounted) {
@@ -312,6 +345,50 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       },
                     ),
                   ],
+
+                  // Selected document preview
+                  if (_selectedDocument != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.insert_drive_file,
+                            color: theme.primaryColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedDocument!.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              setState(() {
+                                _selectedDocument = null;
+                              });
+                            },
+                            icon: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -337,12 +414,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   onPressed: _showImageSourceDialog,
                   icon: Icon(Icons.image, color: theme.primaryColor),
                 ),
+                
                 IconButton(
-                  onPressed: () {},
+                  onPressed: _pickDocument,
                   icon: Icon(
                     Icons.attach_file,
                     color: colorScheme.onSurfaceVariant,
                   ),
+                  
                 ),
               ],
             ),

@@ -8,13 +8,15 @@ class PostService {
       .collection('posts');
 
   // Create new post
-  Future<void> createPost({
-    required String userId,
-    required String userName,
-    required String userImage,
-    required String content,
-    String? imageUrl,
-  }) async {
+    Future<void> createPost({
+      required String userId,
+      required String userName,
+      required String userImage,
+      required String content,
+      String? imageUrl,
+      String? documentUrl,
+      String? documentName,
+    }) async {
     try {
       DocumentReference docRef = _postsCollection.doc();
 
@@ -25,6 +27,8 @@ class PostService {
         userImage: userImage,
         content: content,
         imageUrl: imageUrl,
+        documentUrl: documentUrl,
+        documentName: documentName,
         createdAt: DateTime.now(),
       );
 

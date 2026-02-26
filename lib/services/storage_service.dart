@@ -2,6 +2,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+
 
 class StorageService {
   final ImagePicker _picker = ImagePicker();
@@ -12,6 +15,50 @@ class StorageService {
     'flutter_images',
     cache: false,
   );
+
+
+// Pick document (PDF, DOC, etc.)
+Future<FilePickerResult?> pickDocument() async {
+  try {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'],
+      allowMultiple: false,
+    );
+    return result;
+  } catch (e) {
+    print('Pick document error: $e');
+    return null;
+  }
+}
+
+// Upload document to Cloudinary
+Future<String?> uploadDocument(PlatformFile file, String folder) async {
+  try {
+    if (file.path == null) return null;
+    
+    // For web, use bytes. For mobile, use file path
+    final fileData = file.bytes ?? await File(file.path!).readAsBytes();
+    
+    String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+    
+    // Cloudinary supports raw files
+    CloudinaryResponse response = await cloudinary.uploadFile(
+      CloudinaryFile.fromBytesData(
+        fileData,
+        identifier: fileName,
+        folder: folder,
+        resourceType: CloudinaryResourceType.Raw, // Raw for documents
+      ),
+    );
+    
+    print('Document uploaded: ${response.secureUrl}');
+    return response.secureUrl;
+  } catch (e) {
+    print('Upload document error: $e');
+    return null;
+  }
+}
 
   // Pick image with source selection (for mobile)
   Future<XFile?> pickImageWithSource(ImageSource source) async {

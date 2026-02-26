@@ -1,6 +1,10 @@
 // Post model
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
+
+// Add to fromMap
+
 class PostModel {
   final String id;
   final String userId;
@@ -11,6 +15,9 @@ class PostModel {
   final List<String> likes;
   final int commentsCount;
   final DateTime createdAt;
+  final String? documentUrl;
+  final String? documentName;
+  
 
   PostModel({
     required this.id,
@@ -22,6 +29,9 @@ class PostModel {
     this.likes = const [],
     this.commentsCount = 0,
     required this.createdAt,
+    this.documentUrl,
+    this.documentName,
+
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +44,8 @@ class PostModel {
       'likes': likes,
       'commentsCount': commentsCount,
       'createdAt': Timestamp.fromDate(createdAt),
+      'documentUrl': documentUrl,
+      'documentName': documentName,
     };
   }
 
@@ -48,6 +60,8 @@ class PostModel {
       likes: List<String>.from(map['likes'] ?? []),
       commentsCount: map['commentsCount'] ?? 0,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      documentUrl: map['documentUrl'],
+documentName: map['documentName'],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'post_creation.dart';
 import 'discover.dart';
 import 'post_detail_screen.dart';
@@ -360,6 +361,43 @@ class _FeedScreenState extends State<FeedScreen> {
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
+                ),
+              ),
+            ],
+
+            if (post.documentUrl != null && post.documentName != null) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () async {
+                  final uri = Uri.tryParse(post.documentUrl!);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.insert_drive_file, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          post.documentName!,
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            decoration: TextDecoration.underline,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(Icons.open_in_new, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ],
+                  ),
                 ),
               ),
             ],
