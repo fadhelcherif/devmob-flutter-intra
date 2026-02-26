@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/chat_service.dart';
@@ -62,6 +64,42 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _sendFile() async {
+    if (_currentUser == null) return;
+
+    FilePickerResult? result = await _storageService.pickDocument();
+    if (result == null) return;
+
+    final file = result.files.first;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      String? fileUrl = await _storageService.uploadDocument(file, 'chat_files');
+      Navigator.pop(context);
+
+      if (fileUrl != null) {
+        await _chatService.sendFileMessage(
+          senderId: _currentUser!.uid,
+          senderName: _currentUser!.name,
+          senderImage: _currentUser!.profileImageUrl ?? 'https://i.pravatar.cc/150',
+          receiverId: widget.receiverId,
+          fileUrl: fileUrl,
+          fileName: file.name,
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading file: $e')),
+      );
     }
   }
 
@@ -195,6 +233,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     onPressed: _sendImage,
                     icon: Icon(Icons.image, color: theme.primaryColor),
                   ),
+                  // File button
+                  IconButton(
+                    onPressed: _sendFile,
+                    icon: Icon(Icons.attach_file, color: theme.primaryColor),
+                  ),
                   // Text input
                   Expanded(
                     child: TextField(
@@ -246,12 +289,110 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final colorScheme = theme.colorScheme;
 
         bool isImage = false;
+        bool isFile = false;
         String? imageUrl;
+        String? fileUrl;
+        String? fileName;
 
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
           isImage = data?['isImage'] == true;
           imageUrl = data?['imageUrl'];
+          isFile = data?['isFile'] == true;
+          fileUrl = data?['fileUrl'];
+          fileName = data?['fileName'];
+        }
+
+        Widget bubbleContent;
+
+        if (isImage && imageUrl != null) {
+          bubbleContent = ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.network(
+              imageUrl,
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  width: 200,
+                  height: 200,
+                  padding: const EdgeInsets.all(20),
+                  child: const CircularProgressIndicator(),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 200,
+                  height: 100,
+                  padding: const EdgeInsets.all(16),
+                  child: const Text('Failed to load image'),
+                );
+              },
+            ),
+          );
+        } else if (isFile && fileUrl != null && fileName != null) {
+          bubbleContent = GestureDetector(
+            onTap: () async {
+              final uri = Uri.tryParse(fileUrl!);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isMe ? theme.primaryColor : colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.insert_drive_file,
+                    color: isMe ? colorScheme.onPrimary : theme.primaryColor,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      fileName!,
+                      style: TextStyle(
+                        color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.open_in_new,
+                    size: 14,
+                    color: isMe
+                        ? colorScheme.onPrimary.withOpacity(0.7)
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          bubbleContent = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isMe ? theme.primaryColor : colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              message.content,
+              style: TextStyle(
+                color: isMe ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontSize: 14,
+              ),
+            ),
+          );
         }
 
         return Align(
@@ -261,52 +402,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.75,
             ),
-            decoration: BoxDecoration(
-              color: isMe ? theme.primaryColor : colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: isImage && imageUrl != null
-                  ? Image.network(
-                      imageUrl,
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: 200,
-                          height: 200,
-                          padding: const EdgeInsets.all(20),
-                          child: const CircularProgressIndicator(),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 200,
-                          height: 100,
-                          padding: const EdgeInsets.all(16),
-                          child: const Text('Failed to load image'),
-                        );
-                      },
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Text(
-                        message.content,
-                        style: TextStyle(
-                          color: isMe
-                              ? colorScheme.onPrimary
-                              : colorScheme.onSurface,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-            ),
+            child: bubbleContent,
           ),
         );
       },

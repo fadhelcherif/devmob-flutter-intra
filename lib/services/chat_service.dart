@@ -97,6 +97,52 @@ class ChatService {
     }
   }
 
+  // Send file message
+  Future<void> sendFileMessage({
+    required String senderId,
+    required String senderName,
+    required String senderImage,
+    required String receiverId,
+    required String fileUrl,
+    required String fileName,
+  }) async {
+    try {
+      String chatId = getChatId(senderId, receiverId);
+
+      DocumentReference docRef = _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc();
+
+      MessageModel message = MessageModel(
+        id: docRef.id,
+        chatId: chatId,
+        senderId: senderId,
+        senderName: senderName,
+        senderImage: senderImage,
+        content: '📎 $fileName',
+        timestamp: DateTime.now(),
+      );
+
+      await docRef.set({
+        ...message.toMap(),
+        'fileUrl': fileUrl,
+        'fileName': fileName,
+        'isFile': true,
+      });
+
+      await _firestore.collection('chats').doc(chatId).set({
+        'lastMessage': '📎 $fileName',
+        'lastMessageTime': Timestamp.now(),
+        'participants': [senderId, receiverId],
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print('Send file message error: $e');
+      throw e;
+    }
+  }
+
   // Get messages between two users
   Stream<List<MessageModel>> getMessages(String userId1, String userId2) {
     String chatId = getChatId(userId1, userId2);
