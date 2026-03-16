@@ -9,7 +9,14 @@ import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final String? groupId;
+  final String? groupName;
+
+  const CreatePostScreen({
+    super.key,
+    this.groupId,
+    this.groupName,
+  });
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -25,6 +32,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   PlatformFile? _selectedDocument;
   bool _isLoading = false;
   String _uploadStatus = '';
+
+  bool get _isGroupPost => widget.groupId != null && widget.groupId!.isNotEmpty;
 
   // Pick document (PDF, DOC, etc.)
   Future<void> _pickDocument() async {
@@ -202,6 +211,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           userId: user.uid,
           userName: user.name,
           userImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150',
+          groupId: widget.groupId,
+          groupName: widget.groupName,
           content: _textController.text.trim(),
           imageUrl: imageUrl,
           documentUrl: documentUrl,
@@ -246,7 +257,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         title: Text(
           _isLoading
               ? (_uploadStatus.isEmpty ? 'Processing...' : _uploadStatus)
-              : 'Post',
+              : (_isGroupPost ? 'Group Post' : 'Post'),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         actions: [
@@ -289,7 +300,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     maxLines: null,
                     textAlignVertical: TextAlignVertical.top,
                     decoration: InputDecoration(
-                      hintText: "What's in your mind?",
+                      hintText: _isGroupPost
+                          ? 'Share something with ${widget.groupName ?? 'this group'}'
+                          : "What's in your mind?",
                       hintStyle: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 16,
@@ -298,6 +311,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
+
+                  if (_isGroupPost) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'Posting in ${widget.groupName ?? 'group'}',
+                          style: TextStyle(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
 
                   // Selected image preview
                   if (_selectedImage != null) ...[

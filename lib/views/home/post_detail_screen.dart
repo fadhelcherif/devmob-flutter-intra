@@ -16,6 +16,17 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   final AuthService _authService = AuthService();
   final PostService _postService = PostService();
+  late bool _isLikedByCurrentUser;
+  late int _likesCount;
+
+  @override
+  void initState() {
+    super.initState();
+    final String? currentUserId = _authService.currentUser?.uid;
+    _isLikedByCurrentUser =
+        currentUserId != null && widget.post.likes.contains(currentUserId);
+    _likesCount = widget.post.likes.length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +120,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       Icon(Icons.thumb_up, size: 16, color: theme.primaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        '${widget.post.likes.length} Likes',
+                        '$_likesCount Likes',
                         style: TextStyle(
                           color: colorScheme.onSurfaceVariant,
                           fontSize: 12,
@@ -139,12 +150,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildActionButton(
-                        Icons.thumb_up_outlined,
+                        _isLikedByCurrentUser
+                            ? Icons.thumb_up
+                            : Icons.thumb_up_outlined,
                         'Like',
+                        color: _isLikedByCurrentUser
+                            ? theme.primaryColor
+                            : colorScheme.onSurfaceVariant,
                         onTap: () => _likePost(),
                       ),
-                      _buildActionButton(Icons.thumb_down_outlined, 'Dislike'),
-                      _buildActionButton(Icons.share_outlined, 'Share'),
+                      _buildActionButton(
+                        Icons.chat_bubble_outline,
+                        'Comment',
+                      ),
                     ],
                   ),
                 ],
@@ -178,8 +196,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _buildActionButton(
     IconData icon,
     String label, {
+    Color? color,
     VoidCallback? onTap,
   }) {
+    final resolvedColor = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+
     return InkWell(
       onTap: onTap,
       child: Row(
@@ -187,14 +208,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         children: [
           Icon(
             icon,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: resolvedColor,
             size: 20,
           ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: resolvedColor,
               fontSize: 14,
             ),
           ),
@@ -207,9 +228,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     try {
       String? userId = _authService.currentUser?.uid;
       if (userId != null) {
+        setState(() {
+          if (_isLikedByCurrentUser) {
+            _likesCount--;
+          } else {
+            _likesCount++;
+          }
+          _isLikedByCurrentUser = !_isLikedByCurrentUser;
+        });
+
         await _postService.likePost(widget.post.id, userId);
       }
     } catch (e) {
+      setState(() {
+        if (_isLikedByCurrentUser) {
+          _likesCount--;
+        } else {
+          _likesCount++;
+        }
+        _isLikedByCurrentUser = !_isLikedByCurrentUser;
+      });
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));

@@ -10,6 +10,8 @@ class PostModel {
   final String userId;
   final String userName;
   final String userImage;
+  final String? groupId;
+  final String? groupName;
   final String content;
   final String? imageUrl;
   final List<String> likes;
@@ -24,6 +26,8 @@ class PostModel {
     required this.userId,
     required this.userName,
     required this.userImage,
+    this.groupId,
+    this.groupName,
     required this.content,
     this.imageUrl,
     this.likes = const [],
@@ -39,6 +43,8 @@ class PostModel {
       'userId': userId,
       'userName': userName,
       'userImage': userImage,
+      'groupId': groupId,
+      'groupName': groupName,
       'content': content,
       'imageUrl': imageUrl,
       'likes': likes,
@@ -55,13 +61,15 @@ class PostModel {
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       userImage: map['userImage'] ?? '',
+      groupId: map['groupId'],
+      groupName: map['groupName'],
       content: map['content'] ?? '',
       imageUrl: map['imageUrl'],
       likes: List<String>.from(map['likes'] ?? []),
       commentsCount: map['commentsCount'] ?? 0,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       documentUrl: map['documentUrl'],
-documentName: map['documentName'],
+      documentName: map['documentName'],
     );
   }
 }

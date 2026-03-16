@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../models/group_model.dart';
+import '../../models/post_model.dart';
 import '../../services/group_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/post_service.dart';
+import '../home/post_creation.dart';
+import '../home/post_detail_screen.dart';
 import 'group_chat.dart';
 
 class GroupDetailScreen extends StatefulWidget {
@@ -16,6 +20,7 @@ class GroupDetailScreen extends StatefulWidget {
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
   final GroupService _groupService = GroupService();
   final AuthService _authService = AuthService();
+  final PostService _postService = PostService();
   GroupModel? _group;
   bool _isLoading = true;
   bool _isMember = false;
@@ -145,8 +150,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        GroupDetailScreen(groupId: widget.groupId),
+                    builder: (context) => const GroupChatScreen(),
                   ),
                 );
               },
@@ -157,9 +161,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: StreamBuilder<List<PostModel>>(
+          stream: _isMember ? _postService.getGroupPosts(widget.groupId) : null,
+          builder: (context, postSnapshot) {
+            final groupPosts = postSnapshot.data ?? const <PostModel>[];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // Group info
             Padding(
               padding: const EdgeInsets.all(16),
@@ -228,7 +237,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   if (!group.isPublic)
                     _buildStat('${group.pendingMembers.length}', 'Pending'),
                   if (!group.isPublic) _buildStatDivider(),
-                  _buildStat('0', 'Posts'),
+                  _buildStat('${groupPosts.length}', 'Posts'),
                 ],
               ),
             ),
@@ -263,12 +272,295 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               _buildPendingList(),
             ],
 
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Text(
+                    'Group Hub',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_isMember)
+                    FloatingActionButton.small(
+                      heroTag: 'group_post_fab_${widget.groupId}',
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreatePostScreen(
+                              groupId: group.id,
+                              groupName: group.name,
+                            ),
+                          ),
+                        );
+                        if (mounted) {
+                          _loadGroup();
+                        }
+                      },
+                      child: const Icon(Icons.add),
+                    ),
+                ],
+              ),
+            ),
+
+            if (_isMember && postSnapshot.connectionState == ConnectionState.waiting)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_isMember && groupPosts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.forum_outlined, size: 36),
+                      SizedBox(height: 12),
+                      Text(
+                        'No group posts yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Start the conversation with the first post.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_isMember)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                itemCount: groupPosts.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final post = groupPosts[index];
+                  return _buildGroupPostCard(post);
+                },
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Text(
+                    group.isPublic
+                        ? 'Join this group to publish and view member posts in the hub.'
+                        : 'Become a member to unlock the private group hub and post feed.',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+
             const SizedBox(height: 24),
-          ],
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: _buildBottomButton(),
     );
+  }
+
+  Widget _buildGroupPostCard(PostModel post) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bool isLikedByCurrentUser = post.likes.contains(
+      _authService.currentUser?.uid,
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PostDetailScreen(post: post)),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(backgroundImage: NetworkImage(post.userImage)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        _getTimeAgo(post.createdAt),
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (post.content.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(post.content, style: const TextStyle(height: 1.4)),
+            ],
+            if (post.imageUrl != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  post.imageUrl!,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.thumb_up_alt_outlined,
+                  size: 16,
+                  color: theme.primaryColor,
+                ),
+                const SizedBox(width: 4),
+                Text('${post.likes.length}'),
+                const SizedBox(width: 16),
+                Icon(
+                  Icons.chat_bubble_outline,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text('${post.commentsCount}'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildPostActionButton(
+                  icon: isLikedByCurrentUser ? Icons.thumb_up : Icons.thumb_up_outlined,
+                  label: 'Like',
+                  color: isLikedByCurrentUser
+                      ? theme.primaryColor
+                      : colorScheme.onSurfaceVariant,
+                  onTap: () => _likePost(post),
+                ),
+                _buildPostActionButton(
+                  icon: Icons.chat_bubble_outline,
+                  label: 'Comment',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostDetailScreen(post: post),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostActionButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+    Color? color,
+  }) {
+    final Color resolvedColor =
+        color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            Icon(icon, color: resolvedColor, size: 20),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(color: resolvedColor, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _likePost(PostModel post) async {
+    try {
+      final userId = _authService.currentUser?.uid;
+      if (userId != null) {
+        await _postService.likePost(post.id, userId);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 
   Widget _buildBottomButton() {

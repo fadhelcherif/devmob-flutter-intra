@@ -13,6 +13,8 @@ class PostService {
       required String userName,
       required String userImage,
       required String content,
+      String? groupId,
+      String? groupName,
       String? imageUrl,
       String? documentUrl,
       String? documentName,
@@ -25,6 +27,8 @@ class PostService {
         userId: userId,
         userName: userName,
         userImage: userImage,
+        groupId: groupId,
+        groupName: groupName,
         content: content,
         imageUrl: imageUrl,
         documentUrl: documentUrl,
@@ -58,6 +62,21 @@ class PostService {
   Stream<List<PostModel>> getUserPosts(String userId) {
     return _postsCollection
         .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return PostModel.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList();
+        });
+  }
+
+  Stream<List<PostModel>> getGroupPosts(String groupId) {
+    return _postsCollection
+        .where('groupId', isEqualTo: groupId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {

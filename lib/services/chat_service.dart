@@ -37,17 +37,16 @@ class ChatService {
         timestamp: DateTime.now(),
       );
 
-      await docRef.set(message.toMap());
-
-      // Update last message in chat document
       await _firestore.collection('chats').doc(chatId).set({
         'lastMessage': content,
         'lastMessageTime': Timestamp.now(),
         'participants': [senderId, receiverId],
       }, SetOptions(merge: true));
+
+      await docRef.set(message.toMap());
     } catch (e) {
       print('Send message error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -78,68 +77,20 @@ class ChatService {
         timestamp: DateTime.now(),
       );
 
-      // Add imageUrl to a separate field
-      await docRef.set({
-        ...message.toMap(),
-        'imageUrl': imageUrl,
-        'isImage': true,
-      });
-
-      // Update last message
       await _firestore.collection('chats').doc(chatId).set({
         'lastMessage': '📷 Image',
         'lastMessageTime': Timestamp.now(),
         'participants': [senderId, receiverId],
       }, SetOptions(merge: true));
-    } catch (e) {
-      print('Send image message error: $e');
-      throw e;
-    }
-  }
-
-  // Send file message
-  Future<void> sendFileMessage({
-    required String senderId,
-    required String senderName,
-    required String senderImage,
-    required String receiverId,
-    required String fileUrl,
-    required String fileName,
-  }) async {
-    try {
-      String chatId = getChatId(senderId, receiverId);
-
-      DocumentReference docRef = _firestore
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .doc();
-
-      MessageModel message = MessageModel(
-        id: docRef.id,
-        chatId: chatId,
-        senderId: senderId,
-        senderName: senderName,
-        senderImage: senderImage,
-        content: '📎 $fileName',
-        timestamp: DateTime.now(),
-      );
 
       await docRef.set({
         ...message.toMap(),
-        'fileUrl': fileUrl,
-        'fileName': fileName,
-        'isFile': true,
+        'imageUrl': imageUrl,
+        'isImage': true,
       });
-
-      await _firestore.collection('chats').doc(chatId).set({
-        'lastMessage': '📎 $fileName',
-        'lastMessageTime': Timestamp.now(),
-        'participants': [senderId, receiverId],
-      }, SetOptions(merge: true));
     } catch (e) {
-      print('Send file message error: $e');
-      throw e;
+      print('Send image message error: $e');
+      rethrow;
     }
   }
 
@@ -169,7 +120,7 @@ class ChatService {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            Map<String, dynamic> data = doc.data();
             List<dynamic> participants = data['participants'] ?? [];
             // Get the other user's ID
             String otherUserId = participants.firstWhere(

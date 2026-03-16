@@ -247,6 +247,10 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Widget _buildPost(PostModel post) {
+    final bool isLikedByCurrentUser = post.likes.contains(
+      _authService.currentUser?.uid,
+    );
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -442,8 +446,13 @@ class _FeedScreenState extends State<FeedScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildActionButton(
-                  Icons.thumb_up_outlined,
+                  isLikedByCurrentUser
+                      ? Icons.thumb_up
+                      : Icons.thumb_up_outlined,
                   'Like',
+                  color: isLikedByCurrentUser
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   onTap: () => _likePost(post),
                 ),
 
@@ -470,8 +479,12 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget _buildActionButton(
     IconData icon,
     String label, {
+    Color? color,
     VoidCallback? onTap,
   }) {
+    final Color resolvedColor =
+        color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+
     return InkWell(
       onTap: onTap,
       child: Column(
@@ -479,14 +492,14 @@ class _FeedScreenState extends State<FeedScreen> {
         children: [
           Icon(
             icon,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: resolvedColor,
             size: 24,
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: resolvedColor,
               fontSize: 12,
             ),
           ),
