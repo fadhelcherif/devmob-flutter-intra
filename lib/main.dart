@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'views/splash/Splash.dart';
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/group_message_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,8 +25,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => GroupMessageProvider()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return AnimatedBuilder(

@@ -35,10 +35,12 @@ Future<FilePickerResult?> pickDocument() async {
 // Upload document to Cloudinary
 Future<String?> uploadDocument(PlatformFile file, String folder) async {
   try {
-    if (file.path == null) return null;
-    
-    // For web, use bytes. For mobile, use file path
-    final fileData = file.bytes ?? await File(file.path!).readAsBytes();
+    // For web, use bytes. For mobile/desktop, fallback to file path.
+    final fileData = file.bytes ??
+        (file.path != null ? await File(file.path!).readAsBytes() : null);
+    if (fileData == null) {
+      return null;
+    }
     
     String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
     

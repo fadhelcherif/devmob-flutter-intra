@@ -6,7 +6,7 @@ import '../../services/auth_service.dart';
 import '../../services/post_service.dart';
 import '../home/post_creation.dart';
 import '../home/post_detail_screen.dart';
-import 'group_chat.dart';
+import 'group_chat_screen.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -150,7 +150,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const GroupChatScreen(),
+                    builder: (context) => GroupChatScreen(groupId: widget.groupId),
                   ),
                 );
               },
