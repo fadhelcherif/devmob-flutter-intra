@@ -160,7 +160,7 @@ class _FeedScreenState extends State<FeedScreen> {
       ),
       drawer: const ProfileMenuScreen(),
       body: StreamBuilder<List<PostModel>>(
-        stream: _postService.getPosts(),
+        stream: _postService.getMainFeedPosts(_authService.currentUser!.uid),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -300,6 +300,18 @@ class _FeedScreenState extends State<FeedScreen> {
                           fontSize: 12,
                         ),
                       ),
+                      if (post.groupId != null && post.groupId!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Posted in ${post.groupName?.isNotEmpty == true ? post.groupName : 'group'}',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

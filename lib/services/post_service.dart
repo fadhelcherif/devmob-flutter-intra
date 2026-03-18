@@ -6,6 +6,8 @@ class PostService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CollectionReference _postsCollection = FirebaseFirestore.instance
       .collection('posts');
+  final CollectionReference _groupsCollection = FirebaseFirestore.instance
+      .collection('groups');
 
   // Create new post
     Future<void> createPost({
@@ -56,6 +58,82 @@ class PostService {
             );
           }).toList();
         });
+  }
+
+  // Get posts visible in the main feed based on group privacy.
+  // Public group posts are visible to everyone.
+  // Private group posts are visible only to group members.
+  Stream<List<PostModel>> getMainFeedPosts(String currentUserId) {
+    return _postsCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final allPosts = snapshot.docs
+              .map(
+                (doc) => PostModel.fromMap(
+                  doc.id,
+                  doc.data() as Map<String, dynamic>,
+                ),
+              )
+              .toList();
+
+          final groupIds = allPosts
+              .map((post) => post.groupId)
+              .whereType<String>()
+              .where((id) => id.isNotEmpty)
+              .toSet()
+              .toList();
+
+          if (groupIds.isEmpty) {
+            return allPosts;
+          }
+
+          final groupsById = await _getGroupsByIds(groupIds);
+
+          return allPosts.where((post) {
+            final groupId = post.groupId;
+            if (groupId == null || groupId.isEmpty) {
+              return true;
+            }
+
+            final groupData = groupsById[groupId];
+            if (groupData == null) {
+              return false;
+            }
+
+            final isPublic = groupData['isPublic'] == true;
+            if (isPublic) {
+              return true;
+            }
+
+            final members = List<String>.from(groupData['members'] ?? []);
+            return members.contains(currentUserId);
+          }).toList();
+        });
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _getGroupsByIds(
+    List<String> groupIds,
+  ) async {
+    final Map<String, Map<String, dynamic>> groupsById = {};
+
+    // Firestore whereIn accepts up to 10 document IDs per query.
+    for (int i = 0; i < groupIds.length; i += 10) {
+      final chunk = groupIds.sublist(
+        i,
+        i + 10 > groupIds.length ? groupIds.length : i + 10,
+      );
+
+      final snapshot = await _groupsCollection
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        groupsById[doc.id] = doc.data() as Map<String, dynamic>;
+      }
+    }
+
+    return groupsById;
   }
 
   // Get posts by specific user
