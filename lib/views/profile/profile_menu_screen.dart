@@ -1,4 +1,3 @@
-import 'package:devmobi_flutter_intra/providers/theme_provider.dart';
 import 'package:devmobi_flutter_intra/views/home/discover.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
@@ -6,7 +5,9 @@ import '../../models/user_model.dart';
 import 'user_profile.dart';
 import 'edit_profile.dart';
 import '../group/create_group.dart';
+import '../group/my_groups_screen.dart';
 import 'settings.dart';
+import '../auth/login_screen.dart';
 
 class ProfileMenuScreen extends StatefulWidget {
   const ProfileMenuScreen({super.key});
@@ -18,6 +19,23 @@ class ProfileMenuScreen extends StatefulWidget {
 class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
   final AuthService _authService = AuthService();
   UserModel? _user;
+
+  Future<void> _logout() async {
+    try {
+      await _authService.logout();
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+    }
+  }
 
   @override
   void initState() {
@@ -105,6 +123,13 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
               );
             }),
 
+            _buildMenuItem(Icons.groups, 'My Groups', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyGroupsScreen()),
+              );
+            }),
+
             const Divider(),
 
             _buildMenuItem(Icons.manage_accounts, 'Manage Profile', () {
@@ -125,8 +150,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
               );
             }),
             _buildMenuItem(Icons.logout, 'Logout', () async {
-              await AuthService().logout();
-              Navigator.pushReplacementNamed(context, '/login');
+              await _logout();
             }),
           ],
         ),
