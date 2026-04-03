@@ -112,6 +112,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'People you may know',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                     stream: _usersStream,
@@ -164,12 +176,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         );
                       }
 
-                      return ListView.separated(
+                      return GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.68,
+                            ),
                         itemCount: users.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: theme.dividerColor),
                         itemBuilder: (context, index) {
-                          return _buildUserTile(users[index]);
+                          return _buildUserCard(users[index]);
                         },
                       );
                     },
@@ -180,85 +198,168 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     );
   }
 
-  Widget _buildUserTile(UserModel user) {
+  Widget _buildUserCard(UserModel user) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     final imageUrl = user.profileImageUrl;
+    final introLine = _buildIntroLine(user);
+    final roleLine = _buildRoleLine(user);
+    final chipText = _buildSharedInterestLine(user);
 
     final avatar = (imageUrl != null && imageUrl.trim().isNotEmpty)
-        ? CircleAvatar(radius: 22, backgroundImage: NetworkImage(imageUrl))
+        ? CircleAvatar(radius: 30, backgroundImage: NetworkImage(imageUrl))
         : CircleAvatar(
-            radius: 22,
+            radius: 30,
             backgroundColor: colorScheme.surface,
             child: Text(
               user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
               style: TextStyle(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
+                fontSize: 20,
               ),
             ),
           );
 
-    return ListTile(
-      leading: avatar,
-      title: Text(
-        user.name,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-      ),
-      subtitle: Text(
-        (user.bio != null && user.bio!.trim().isNotEmpty)
-            ? user.bio!
-            : user.email,
-        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Wrap(
-        spacing: 8,
-        children: [
-          OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatDetailScreen(
-                    userName: user.name,
-                    userImage:
-                        user.profileImageUrl ?? 'https://i.pravatar.cc/150',
-                    receiverId: user.uid,
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserProfileScreen(userId: user.uid),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: theme.dividerColor),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatDetailScreen(
+                          userName: user.name,
+                          userImage:
+                              user.profileImageUrl ??
+                              'https://i.pravatar.cc/150',
+                          receiverId: user.uid,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Icon(
+                    Icons.message_rounded,
+                    color: Colors.blue,
+                    size: 20,
                   ),
                 ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            child: const Text('Message'),
-          ),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UserProfileScreen(userId: user.uid),
+              ),
+              avatar,
+              const SizedBox(height: 8),
+              Text(
+                user.name,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            child: const Text('Profile'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                roleLine,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 8),
+              Text(
+                introLine,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 9,
+                      backgroundColor: Colors.blue.withValues(alpha: 0.15),
+                      child: Icon(
+                        Icons.people_alt_rounded,
+                        size: 11,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        chipText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  String _buildRoleLine(UserModel user) {
+    if (user.role == UserRole.admin) return 'Admin';
+    final bio = user.bio?.trim() ?? '';
+    if (bio.contains('/')) return bio;
+    return 'Member';
+  }
+
+  String _buildIntroLine(UserModel user) {
+    final bio = user.bio?.trim() ?? '';
+    if (bio.isNotEmpty) return bio;
+    final localEmail = user.email.split('@').first;
+    final formatted = localEmail
+        .replaceAll('.', ' ')
+        .replaceAll('_', ' ')
+        .trim();
+    return formatted.isEmpty ? 'Open to new connections' : formatted;
+  }
+
+  String _buildSharedInterestLine(UserModel user) {
+    if (user.role == UserRole.admin) {
+      return 'Admin';
+    }
+    return 'User';
   }
 
   @override
