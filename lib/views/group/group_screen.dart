@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/group_model.dart';
 import '../../services/group_service.dart';
-import '../../services/auth_service.dart';
 import 'mygroup.dart';
 
 class GroupsScreen extends StatefulWidget {
@@ -13,13 +12,9 @@ class GroupsScreen extends StatefulWidget {
 
 class _GroupsScreenState extends State<GroupsScreen> {
   final GroupService _groupService = GroupService();
-  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         elevation: 0,

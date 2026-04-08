@@ -8,6 +8,7 @@ import '../group/create_group.dart';
 import '../group/my_groups_screen.dart';
 import 'settings.dart';
 import '../auth/login_screen.dart';
+import '../auth/signup_screen.dart';
 
 class ProfileMenuScreen extends StatefulWidget {
   const ProfileMenuScreen({super.key});
@@ -131,6 +132,16 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
             }),
 
             const Divider(),
+
+            if (_user?.role == UserRole.admin)
+              _buildMenuItem(Icons.person_add_alt_1, 'Create Account', () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SignupScreen(adminMode: true),
+                  ),
+                );
+              }),
 
             _buildMenuItem(Icons.manage_accounts, 'Manage Profile', () {
               if (_user != null) {

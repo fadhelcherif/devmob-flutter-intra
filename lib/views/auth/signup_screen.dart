@@ -4,7 +4,9 @@ import '../../models/user_model.dart';
 import '../home/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  final bool adminMode;
+
+  const SignupScreen({super.key, this.adminMode = false});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -81,8 +83,11 @@ class _SignupScreenState extends State<SignupScreen> {
         'Calling register service with email: ${_emailController.text.trim()}',
       );
 
-      UserModel? user = await _authService
-          .register(
+      final registerAction = widget.adminMode
+          ? _authService.registerByAdmin
+          : _authService.register;
+
+      UserModel? user = await registerAction(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
             name: _nameController.text.trim(),
@@ -102,11 +107,20 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       if (user != null) {
-        // Navigate to home screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const FeedScreen()),
-        );
+        if (widget.adminMode) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created for ${user.name} (${user.role.name})'),
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          // Navigate to home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const FeedScreen()),
+          );
+        }
       } else {
         if (mounted) {
           setState(() {
@@ -154,8 +168,8 @@ class _SignupScreenState extends State<SignupScreen> {
             children: [
               const SizedBox(height: 40),
 
-              const Text(
-                "Let's start here",
+              Text(
+                widget.adminMode ? 'Create account (Admin)' : "Let's start here",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 

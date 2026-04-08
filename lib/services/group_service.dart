@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/group_model.dart';
 
 class GroupService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CollectionReference _groupsCollection = FirebaseFirestore.instance
       .collection('groups');
 

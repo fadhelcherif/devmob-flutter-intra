@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../models/user_model.dart';
+import '../firebase_options.dart';
 import 'post_service.dart';
 
 class AuthService {
@@ -57,6 +59,70 @@ class AuthService {
       rethrow;
     }
     return null;
+  }
+
+  // Register a user without switching the current admin session.
+  Future<UserModel?> registerByAdmin({
+    required String email,
+    required String password,
+    required String name,
+    UserRole role = UserRole.employee,
+  }) async {
+    final current = _auth.currentUser;
+    if (current == null) {
+      throw Exception('Admin must be logged in to create accounts.');
+    }
+
+    final adminData = await getUserData(current.uid);
+    if (adminData == null || adminData.role != UserRole.admin) {
+      throw Exception('Only admins can create accounts.');
+    }
+
+    FirebaseApp? secondaryApp;
+
+    try {
+      final appName = 'secondary-admin-create-${DateTime.now().millisecondsSinceEpoch}';
+      secondaryApp = await Firebase.initializeApp(
+        name: appName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final secondaryFirestore = FirebaseFirestore.instanceFor(app: secondaryApp);
+
+      final result = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = result.user;
+      if (user == null) {
+        throw Exception('Could not create user account.');
+      }
+
+      final newUser = UserModel(
+        uid: user.uid,
+        email: email,
+        name: name,
+        role: role,
+        createdAt: DateTime.now(),
+      );
+
+      await secondaryFirestore
+          .collection('users')
+          .doc(user.uid)
+          .set(newUser.toMap());
+
+      await secondaryAuth.signOut();
+      return newUser;
+    } catch (e) {
+      print('Register by admin error: $e');
+      rethrow;
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
   }
 
   // Login user
