@@ -4,7 +4,10 @@ import 'firebase_options.dart';
 import 'views/splash/Splash.dart';
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
-import 'providers/group_message_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/chat_provider.dart';
+import 'providers/post_provider.dart';
+import 'providers/group_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +31,10 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => GroupMessageProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => PostProvider()),
+        ChangeNotifierProvider(create: (_) => GroupProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

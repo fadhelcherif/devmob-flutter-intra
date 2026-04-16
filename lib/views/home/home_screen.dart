@@ -6,7 +6,6 @@ import 'post_detail_screen.dart';
 import '../group/group_screen.dart';
 import '../chat/chat_list.dart';
 import '../profile/profile_menu_screen.dart';
-import 'notifications.dart';
 import '../../models/post_model.dart';
 import '../../services/post_service.dart';
 import '../../services/auth_service.dart';
@@ -220,14 +219,6 @@ class _FeedScreenState extends State<FeedScreen> {
                 MaterialPageRoute(builder: (context) => const DiscoverScreen()),
               );
               break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationsScreen(),
-                ),
-              );
-              break;
           }
         },
         type: BottomNavigationBarType.fixed,
@@ -237,10 +228,6 @@ class _FeedScreenState extends State<FeedScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.group), label: 'My Groups'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Discover'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            label: 'Notifications',
-          ),
         ],
       ),
     );
