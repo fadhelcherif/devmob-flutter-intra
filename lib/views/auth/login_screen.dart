@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../home/home_screen.dart';
@@ -11,12 +12,72 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const String _rememberMeKey = 'remember_me';
+  static const String _rememberedEmailKey = 'remembered_email';
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _rememberMe = false;
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedLogin();
+  }
+
+  Future<void> _loadRememberedLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
+    final rememberedEmail = prefs.getString(_rememberedEmailKey) ?? '';
+
+    if (!mounted) return;
+
+    setState(() {
+      _rememberMe = rememberMe;
+      if (rememberMe && rememberedEmail.isNotEmpty) {
+        _emailController.text = rememberedEmail;
+      }
+    });
+  }
+
+  Future<void> _persistRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_rememberMeKey, _rememberMe);
+
+    if (_rememberMe) {
+      await prefs.setString(_rememberedEmailKey, _emailController.text.trim());
+    } else {
+      await prefs.remove(_rememberedEmailKey);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter your email first to reset password';
+      });
+      return;
+    }
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Could not send reset email. Please verify your email.';
+      });
+    }
+  }
 
   Future<void> _login() async {
     if (_isLoading) return; // Prevent multiple clicks
@@ -65,6 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (user != null) {
+        await _persistRememberMe();
+        if (!mounted) return;
+
         // Navigate to home screen
         Navigator.pushReplacement(
           context,
@@ -116,7 +180,18 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+
+              Center(
+                child: Image.asset(
+                  'assets/icon.png',
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+              const SizedBox(height: 24),
 
               const Text(
                 'Discover your favorite\nspaces with us!',
@@ -225,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: _isLoading ? null : _forgotPassword,
                     style: TextButton.styleFrom(
                       foregroundColor: theme.primaryColor,
                     ),

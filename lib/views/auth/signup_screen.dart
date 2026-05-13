@@ -25,6 +25,31 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Enter your email first to reset password';
+      });
+      return;
+    }
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Could not send reset email. Please verify your email.';
+      });
+    }
+  }
+
   Future<void> _register() async {
     if (_isLoading) return; // Prevent multiple clicks
 
@@ -311,7 +336,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: _isLoading ? null : _forgotPassword,
                     style: TextButton.styleFrom(
                       foregroundColor: theme.primaryColor,
                     ),

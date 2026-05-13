@@ -141,9 +141,20 @@ class _FeedScreenState extends State<FeedScreen> {
             icon: const Icon(Icons.menu),
           ),
         ),
-        title: const Text(
-          'MyCorp',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/icon.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'MyCorp',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         actions: [
           IconButton(

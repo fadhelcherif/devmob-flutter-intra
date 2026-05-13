@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'welcome_screen.dart';
 import '../home/home_screen.dart';
 
@@ -11,6 +12,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  static const String _rememberMeKey = 'remember_me';
+
   @override
   void initState() {
     super.initState();
@@ -23,8 +26,18 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
+
     // Check if user is already logged in
     User? user = FirebaseAuth.instance.currentUser;
+
+    if (!rememberMe && user != null) {
+      await FirebaseAuth.instance.signOut();
+      user = null;
+    }
+
+    if (!mounted) return;
 
     if (user != null) {
       // User is logged in, go to home
