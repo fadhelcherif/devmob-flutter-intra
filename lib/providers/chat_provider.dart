@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/message_model.dart';
 import '../services/chat_service.dart';
+import '../services/storage_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final ChatService _chatService = ChatService();
+  final StorageService _storageService = StorageService();
 
   List<MessageModel> _messages = [];
   List<Map<String, dynamic>> _userChats = [];
@@ -30,6 +35,116 @@ class ChatProvider extends ChangeNotifier {
 
   Stream<List<Map<String, dynamic>>> listenToUserGroupChats(String userId) {
     return _chatService.getUserGroupChats(userId);
+  }
+
+  Stream<List<MessageModel>> listenToGroupMessages(String groupId) {
+    return _chatService.getGroupMessages(groupId);
+  }
+
+  Future<void> ensureDirectChatExists({
+    required String userId,
+    required String otherUserId,
+  }) {
+    return _chatService.ensureDirectChatExists(
+      userId: userId,
+      otherUserId: otherUserId,
+    );
+  }
+
+  String getChatId(String userId1, String userId2) {
+    return _chatService.getChatId(userId1, userId2);
+  }
+
+  Future<XFile?> pickImage() {
+    return _storageService.pickImage();
+  }
+
+  Future<FilePickerResult?> pickDocument() {
+    return _storageService.pickDocument();
+  }
+
+  Future<String?> uploadImageFile(XFile imageFile, String folder) {
+    return _storageService.uploadImageFile(imageFile, folder);
+  }
+
+  Future<String?> uploadDocument(PlatformFile file, String folder) {
+    return _storageService.uploadDocument(file, folder);
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getDirectMessageMetadata({
+    required String userId1,
+    required String userId2,
+    required String messageId,
+  }) {
+    final chatId = _chatService.getChatId(userId1, userId2);
+    return FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .get();
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getGroupMessageMetadata({
+    required String groupId,
+    required String messageId,
+  }) {
+    return FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .doc(messageId)
+        .get();
+  }
+
+  Future<void> sendGroupMessage({
+    required String groupId,
+    required String senderId,
+    required String senderName,
+    required String senderImage,
+    required String content,
+  }) {
+    return _chatService.sendGroupMessage(
+      groupId: groupId,
+      senderId: senderId,
+      senderName: senderName,
+      senderImage: senderImage,
+      content: content,
+    );
+  }
+
+  Future<void> sendGroupImageMessage({
+    required String groupId,
+    required String senderId,
+    required String senderName,
+    required String senderImage,
+    required String imageUrl,
+  }) {
+    return _chatService.sendGroupImageMessage(
+      groupId: groupId,
+      senderId: senderId,
+      senderName: senderName,
+      senderImage: senderImage,
+      imageUrl: imageUrl,
+    );
+  }
+
+  Future<void> sendGroupDocumentMessage({
+    required String groupId,
+    required String senderId,
+    required String senderName,
+    required String senderImage,
+    required String documentUrl,
+    required String documentName,
+  }) {
+    return _chatService.sendGroupDocumentMessage(
+      groupId: groupId,
+      senderId: senderId,
+      senderName: senderName,
+      senderImage: senderImage,
+      documentUrl: documentUrl,
+      documentName: documentName,
+    );
   }
 
   Future<void> refreshMessages(String userId1, String userId2) async {

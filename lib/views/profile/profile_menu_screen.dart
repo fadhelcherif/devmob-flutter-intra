@@ -1,7 +1,8 @@
 import 'package:devmobi_flutter_intra/views/home/discover.dart';
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import 'user_profile.dart';
 import 'edit_profile.dart';
 import '../group/create_group.dart';
@@ -18,12 +19,12 @@ class ProfileMenuScreen extends StatefulWidget {
 }
 
 class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
-  final AuthService _authService = AuthService();
   UserModel? _user;
 
   Future<void> _logout() async {
     try {
-      await _authService.logout();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
@@ -45,9 +46,10 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
   }
 
   Future<void> _loadUser() async {
-    UserModel? user = await _authService.getUserData(
-      _authService.currentUser!.uid,
-    );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
+    if (currentUserId == null) return;
+    UserModel? user = await authProvider.getUserById(currentUserId);
     setState(() {
       _user = user;
     });

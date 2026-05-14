@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
-import '../../services/chat_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/auth_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -26,9 +26,6 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _messageController = TextEditingController();
-  final ChatService _chatService = ChatService();
-  final AuthService _authService = AuthService();
-  final StorageService _storageService = StorageService();
   UserModel? _currentUser;
 
   @override
@@ -38,11 +35,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _loadCurrentUser() async {
-    UserModel? user = await _authService.getUserData(
-      _authService.currentUser!.uid,
-    );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
+    if (currentUserId == null) return;
+
+    UserModel? user = await authProvider.getUserById(currentUserId);
     if (user != null) {
-      await _chatService.ensureDirectChatExists(
+      await chatProvider.ensureDirectChatExists(
         userId: user.uid,
         otherUserId: widget.receiverId,
       );
@@ -56,7 +56,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (_messageController.text.trim().isEmpty || _currentUser == null) return;
 
     try {
-      await _chatService.sendMessage(
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      await chatProvider.sendMessage(
         senderId: _currentUser!.uid,
         senderName: _currentUser!.name,
         senderImage:
@@ -75,7 +76,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _sendImage() async {
     if (_currentUser == null) return;
 
-    XFile? image = await _storageService.pickImage();
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    XFile? image = await chatProvider.pickImage();
     if (image == null) return;
 
     // Show loading
@@ -86,7 +88,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
 
     try {
-      String? imageUrl = await _storageService.uploadImageFile(
+      String? imageUrl = await chatProvider.uploadImageFile(
         image,
         'chat_images',
       );
@@ -94,7 +96,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       Navigator.pop(context); // Close loading
 
       if (imageUrl != null) {
-        await _chatService.sendImageMessage(
+        await chatProvider.sendImageMessage(
           senderId: _currentUser!.uid,
           senderName: _currentUser!.name,
           senderImage:
@@ -114,7 +116,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _sendDocument() async {
     if (_currentUser == null) return;
 
-    final picked = await _storageService.pickDocument();
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final picked = await chatProvider.pickDocument();
     if (picked == null || picked.files.isEmpty) return;
 
     final file = picked.files.first;
@@ -126,14 +129,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
 
     try {
-      final documentUrl = await _storageService.uploadDocument(file, 'chat_docs');
+      final documentUrl = await chatProvider.uploadDocument(file, 'chat_docs');
 
       if (mounted) {
         Navigator.pop(context);
       }
 
       if (documentUrl != null && documentUrl.isNotEmpty) {
-        await _chatService.sendDocumentMessage(
+        await chatProvider.sendDocumentMessage(
           senderId: _currentUser!.uid,
           senderName: _currentUser!.name,
           senderImage:
@@ -188,7 +191,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           // Messages list
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: _chatService.getMessages(
+              stream: Provider.of<ChatProvider>(
+                context,
+                listen: false,
+              ).listenToMessages(
                 _currentUser!.uid,
                 widget.receiverId,
               ),
@@ -288,12 +294,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     // Check if message is an image by checking if it has imageUrl in Firestore
     // We need to get the raw data to check for imageUrl
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('chats')
-          .doc(_chatService.getChatId(_currentUser!.uid, widget.receiverId))
-          .collection('messages')
-          .doc(message.id)
-          .get(),
+      future: Provider.of<ChatProvider>(
+        context,
+        listen: false,
+      ).getDirectMessageMetadata(
+        userId1: _currentUser!.uid,
+        userId2: widget.receiverId,
+        messageId: message.id,
+      ),
       builder: (context, snapshot) {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;

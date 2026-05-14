@@ -101,6 +101,10 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
+  Future<GroupModel?> getGroup(String groupId) {
+    return _groupService.getGroup(groupId);
+  }
+
   Future<void> joinGroup(String groupId, String userId) async {
     _isLoading = true;
     _error = '';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
-import '../../services/chat_service.dart';
-import '../../services/auth_service.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/auth_provider.dart';
 import 'chat_detail.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -13,17 +13,16 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  final ChatService _chatService = ChatService();
-  final AuthService _authService = AuthService();
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    final currentUser = _authService.currentUser;
+    final currentUserId = authProvider.currentUserId;
 
-    if (currentUser == null) {
+    if (currentUserId == null) {
       return const Scaffold(body: Center(child: Text('Please login')));
     }
 
@@ -66,7 +65,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           // Chats list from Firebase
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _chatService.getUserChats(currentUser.uid),
+              stream: chatProvider.listenToUserChats(currentUserId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -102,11 +101,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _buildChatTile(Map<String, dynamic> chat) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('users')
-          .doc(chat['otherUserId'])
-          .get(),
+    return FutureBuilder<UserModel?>(
+      future: Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).getUserById(chat['otherUserId']),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const ListTile(
@@ -115,14 +114,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
           );
         }
 
-        final userData = snapshot.data!.data() as Map<String, dynamic>?;
-        final user = userData != null ? UserModel.fromMap(userData) : null;
+        final user = snapshot.data;
 
         final String name = user?.name ?? 'Unknown';
         final String image =
             user?.profileImageUrl ?? 'https://i.pravatar.cc/150';
         final String lastMessage = chat['lastMessage'] ?? '';
-        final Timestamp? lastTime = chat['lastMessageTime'];
+        final lastTime = chat['lastMessageTime'];
         final String time = lastTime != null
             ? _formatTime(lastTime.toDate())
             : '';

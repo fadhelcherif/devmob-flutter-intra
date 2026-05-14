@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/post_model.dart';
 import '../services/post_service.dart';
+import '../services/storage_service.dart';
 
 class PostProvider extends ChangeNotifier {
   final PostService _postService = PostService();
+  final StorageService _storageService = StorageService();
 
   List<PostModel> _posts = [];
   bool _isLoading = false;
@@ -24,6 +28,26 @@ class PostProvider extends ChangeNotifier {
 
   Stream<List<PostModel>> watchGroupPosts(String groupId) {
     return _postService.getGroupPosts(groupId);
+  }
+
+  Future<XFile?> pickImageWithSource(ImageSource source) {
+    return _storageService.pickImageWithSource(source);
+  }
+
+  Future<XFile?> pickImage() {
+    return _storageService.pickImage();
+  }
+
+  Future<FilePickerResult?> pickDocument() {
+    return _storageService.pickDocument();
+  }
+
+  Future<String?> uploadImageFile(XFile imageFile, String folder) {
+    return _storageService.uploadImageFile(imageFile, folder);
+  }
+
+  Future<String?> uploadDocument(PlatformFile file, String folder) {
+    return _storageService.uploadDocument(file, folder);
   }
 
   Future<void> refreshMainFeedPosts(String currentUserId) async {

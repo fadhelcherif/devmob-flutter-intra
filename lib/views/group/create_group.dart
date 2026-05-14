@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../services/group_service.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/group_provider.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -13,8 +14,6 @@ class CreateGroupScreen extends StatefulWidget {
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final GroupService _groupService = GroupService();
-  final AuthService _authService = AuthService();
 
   bool _isPublic = true;
   bool _isLoading = false;
@@ -32,13 +31,18 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     });
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('Please login first');
+      }
+
       // Get current user
-      UserModel? user = await _authService.getUserData(
-        _authService.currentUser!.uid,
-      );
+      UserModel? user = await authProvider.getUserById(currentUserId);
 
       if (user != null) {
-        await _groupService.createGroup(
+        await groupProvider.createGroup(
           name: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           createdBy: user.uid,

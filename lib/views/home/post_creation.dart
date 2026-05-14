@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
-import '../../services/post_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
+import '../../providers/post_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final String? groupId;
@@ -24,9 +24,6 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _textController = TextEditingController();
-  final PostService _postService = PostService();
-  final AuthService _authService = AuthService();
-  final StorageService _storageService = StorageService();
 
   XFile? _selectedImage;
   PlatformFile? _selectedDocument;
@@ -37,7 +34,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   // Pick document (PDF, DOC, etc.)
   Future<void> _pickDocument() async {
-    FilePickerResult? result = await _storageService.pickDocument();
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    FilePickerResult? result = await postProvider.pickDocument();
     if (result != null) {
       setState(() {
         _selectedDocument = result.files.first;
@@ -129,7 +127,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   // Pick image from gallery or camera
   Future<void> _pickImage(ImageSource source) async {
-    XFile? image = await _storageService.pickImageWithSource(source);
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    XFile? image = await postProvider.pickImageWithSource(source);
     if (image != null) {
       setState(() {
         _selectedImage = image;
@@ -155,10 +154,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUserId;
+      if (currentUserId == null) throw Exception('Please login first');
+
       // Get current user
-      UserModel? user = await _authService.getUserData(
-        _authService.currentUser!.uid,
-      );
+      UserModel? user = await authProvider.getUserById(currentUserId);
 
       if (user != null) {
         String? imageUrl;
@@ -179,7 +181,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             _uploadStatus = 'Uploading image...';
           });
 
-          imageUrl = await _storageService.uploadImageFile(
+          imageUrl = await postProvider.uploadImageFile(
             _selectedImage!,
             'posts/${user.uid}',
           );
@@ -195,7 +197,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             _uploadStatus = 'Uploading document...';
           });
 
-          documentUrl = await _storageService.uploadDocument(
+          documentUrl = await postProvider.uploadDocument(
             _selectedDocument!,
             'documents',
           );
@@ -207,7 +209,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         });
 
         // Create post
-        await _postService.createPost(
+        await postProvider.createPost(
           userId: user.uid,
           userName: user.name,
           userImage: user.profileImageUrl ?? 'https://i.pravatar.cc/150',

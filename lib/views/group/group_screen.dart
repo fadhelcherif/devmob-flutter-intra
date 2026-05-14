@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/group_model.dart';
-import '../../services/group_service.dart';
+import '../../providers/group_provider.dart';
 import 'mygroup.dart';
 
 class GroupsScreen extends StatefulWidget {
@@ -11,10 +12,9 @@ class GroupsScreen extends StatefulWidget {
 }
 
 class _GroupsScreenState extends State<GroupsScreen> {
-  final GroupService _groupService = GroupService();
-
   @override
   Widget build(BuildContext context) {
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -31,7 +31,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
         ],
       ),
       body: StreamBuilder<List<GroupModel>>(
-        stream: _groupService.getAllGroups(),
+        stream: groupProvider.watchAllGroups(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

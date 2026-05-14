@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../models/group_model.dart';
-import '../../services/chat_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
-import '../../services/group_service.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/group_provider.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
@@ -24,10 +24,6 @@ class GroupChatScreen extends StatefulWidget {
 
 class _GroupChatScreenState extends State<GroupChatScreen> {
   final _messageController = TextEditingController();
-  final ChatService _chatService = ChatService();
-  final AuthService _authService = AuthService();
-  final StorageService _storageService = StorageService();
-  final GroupService _groupService = GroupService();
 
   UserModel? _currentUser;
   GroupModel? _groupData;
@@ -40,9 +36,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _loadCurrentUser() async {
-    UserModel? user = await _authService.getUserData(
-      _authService.currentUser!.uid,
-    );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
+    if (currentUserId == null) return;
+    UserModel? user = await authProvider.getUserById(currentUserId);
     if (!mounted) return;
     setState(() {
       _currentUser = user;
@@ -50,7 +47,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _loadGroupData() async {
-    GroupModel? group = await _groupService.getGroup(widget.groupId);
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    GroupModel? group = await groupProvider.getGroup(widget.groupId);
     if (!mounted) return;
     setState(() {
       _groupData = group;
@@ -61,7 +59,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (_messageController.text.trim().isEmpty || _currentUser == null) return;
 
     try {
-      await _chatService.sendGroupMessage(
+      await Provider.of<ChatProvider>(context, listen: false).sendGroupMessage(
         groupId: widget.groupId,
         senderId: _currentUser!.uid,
         senderName: _currentUser!.name,
@@ -81,7 +79,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _sendImage() async {
     if (_currentUser == null) return;
 
-    XFile? image = await _storageService.pickImage();
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    XFile? image = await chatProvider.pickImage();
     if (image == null) return;
 
     showDialog(
@@ -91,7 +90,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
 
     try {
-      String? imageUrl = await _storageService.uploadImageFile(
+      String? imageUrl = await chatProvider.uploadImageFile(
         image,
         'group_messages/${widget.groupId}',
       );
@@ -101,7 +100,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        await _chatService.sendGroupImageMessage(
+        await chatProvider.sendGroupImageMessage(
           groupId: widget.groupId,
           senderId: _currentUser!.uid,
           senderName: _currentUser!.name,
@@ -122,7 +121,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _sendDocument() async {
     if (_currentUser == null) return;
 
-    final picked = await _storageService.pickDocument();
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final picked = await chatProvider.pickDocument();
     if (picked == null || picked.files.isEmpty) return;
 
     final file = picked.files.first;
@@ -134,7 +134,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
 
     try {
-      final documentUrl = await _storageService.uploadDocument(
+      final documentUrl = await chatProvider.uploadDocument(
         file,
         'group_docs/${widget.groupId}',
       );
@@ -144,7 +144,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
 
       if (documentUrl != null && documentUrl.isNotEmpty) {
-        await _chatService.sendGroupDocumentMessage(
+        await chatProvider.sendGroupDocumentMessage(
           groupId: widget.groupId,
           senderId: _currentUser!.uid,
           senderName: _currentUser!.name,
@@ -223,7 +223,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: _chatService.getGroupMessages(widget.groupId),
+              stream: Provider.of<ChatProvider>(
+                context,
+                listen: false,
+              ).listenToGroupMessages(widget.groupId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -313,12 +316,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildMessageBubble(MessageModel message, bool isMe) {
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('groups')
-          .doc(widget.groupId)
-          .collection('messages')
-          .doc(message.id)
-          .get(),
+      future: Provider.of<ChatProvider>(
+        context,
+        listen: false,
+      ).getGroupMessageMetadata(
+        groupId: widget.groupId,
+        messageId: message.id,
+      ),
       builder: (context, snapshot) {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;

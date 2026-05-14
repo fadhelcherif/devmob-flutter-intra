@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/group_model.dart';
 import '../../models/post_model.dart';
-import '../../services/group_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/post_service.dart';
+import '../../providers/group_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/post_provider.dart';
 import '../home/post_creation.dart';
 import '../home/post_detail_screen.dart';
 import 'group_chat_screen.dart';
@@ -18,9 +19,6 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
-  final GroupService _groupService = GroupService();
-  final AuthService _authService = AuthService();
-  final PostService _postService = PostService();
   GroupModel? _group;
   bool _isLoading = true;
   bool _isMember = false;
@@ -35,12 +33,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _loadGroup() async {
     try {
-      GroupModel? group = await _groupService.getGroup(widget.groupId);
-      String currentUserId = _authService.currentUser!.uid;
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      GroupModel? group = await groupProvider.getGroup(widget.groupId);
+      final currentUserId = authProvider.currentUserId;
 
       setState(() {
         _group = group;
-        if (group != null) {
+        if (group != null && currentUserId != null) {
           _isMember = group.members.contains(currentUserId);
           _isPending = group.pendingMembers.contains(currentUserId);
           _isCreator = group.createdBy == currentUserId;
@@ -56,21 +56,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _joinGroup() async {
     try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUserId;
+      if (currentUserId == null) throw Exception('Please login first');
+
       if (_group!.isPublic) {
         // Public group - join immediately
-        await _groupService.joinGroup(
-          widget.groupId,
-          _authService.currentUser!.uid,
-        );
+        await groupProvider.joinGroup(widget.groupId, currentUserId);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Joined group!')));
       } else {
         // Private group - send request
-        await _groupService.requestToJoinGroup(
-          widget.groupId,
-          _authService.currentUser!.uid,
-        );
+        await groupProvider.requestToJoinGroup(widget.groupId, currentUserId);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Request sent to group creator')),
         );
@@ -85,10 +84,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _leaveGroup() async {
     try {
-      await _groupService.leaveGroup(
-        widget.groupId,
-        _authService.currentUser!.uid,
-      );
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUserId;
+      if (currentUserId == null) throw Exception('Please login first');
+      await groupProvider.leaveGroup(widget.groupId, currentUserId);
       _loadGroup();
       ScaffoldMessenger.of(
         context,
@@ -102,10 +102,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _cancelRequest() async {
     try {
-      await _groupService.rejectMember(
-        widget.groupId,
-        _authService.currentUser!.uid,
-      );
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = authProvider.currentUserId;
+      if (currentUserId == null) throw Exception('Please login first');
+      await groupProvider.rejectMember(widget.groupId, currentUserId);
       _loadGroup();
       ScaffoldMessenger.of(
         context,
@@ -162,7 +163,12 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       ),
       body: SingleChildScrollView(
         child: StreamBuilder<List<PostModel>>(
-          stream: _isMember ? _postService.getGroupPosts(widget.groupId) : null,
+          stream: _isMember
+              ? Provider.of<PostProvider>(
+                  context,
+                  listen: false,
+                ).watchGroupPosts(widget.groupId)
+              : null,
           builder: (context, postSnapshot) {
             final groupPosts = postSnapshot.data ?? const <PostModel>[];
 
@@ -390,8 +396,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   Widget _buildGroupPostCard(PostModel post) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final bool isLikedByCurrentUser = post.likes.contains(
-      _authService.currentUser?.uid,
+      authProvider.currentUserId,
     );
 
     return InkWell(
@@ -537,9 +544,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Future<void> _likePost(PostModel post) async {
     try {
-      final userId = _authService.currentUser?.uid;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
+      final userId = authProvider.currentUserId;
       if (userId != null) {
-        await _postService.likePost(post.id, userId);
+        await postProvider.toggleLike(post.id, userId);
       }
     } catch (e) {
       if (!mounted) return;
@@ -626,7 +635,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     return Column(
       children: _group!.pendingMembers.map((userId) {
         return FutureBuilder(
-          future: _authService.getUserData(userId),
+          future: Provider.of<AuthProvider>(
+            context,
+            listen: false,
+          ).getUserById(userId),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const SizedBox.shrink();
             final user = snapshot.data!;
@@ -646,7 +658,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       color: Theme.of(context).primaryColor,
                     ),
                     onPressed: () async {
-                      await _groupService.approveMember(widget.groupId, userId);
+                      await Provider.of<GroupProvider>(
+                        context,
+                        listen: false,
+                      ).approveMember(widget.groupId, userId);
                       _loadGroup();
                     },
                   ),
@@ -656,7 +671,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       color: Theme.of(context).colorScheme.error,
                     ),
                     onPressed: () async {
-                      await _groupService.rejectMember(widget.groupId, userId);
+                      await Provider.of<GroupProvider>(
+                        context,
+                        listen: false,
+                      ).rejectMember(widget.groupId, userId);
                       _loadGroup();
                     },
                   ),

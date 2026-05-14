@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/post_model.dart';
 import '../../widgets/comment_box.dart';
-import '../../services/auth_service.dart';
-import '../../services/post_service.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/post_provider.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final PostModel post;
@@ -14,17 +15,13 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  final AuthService _authService = AuthService();
-  final PostService _postService = PostService();
   late bool _isLikedByCurrentUser;
   late int _likesCount;
 
   @override
   void initState() {
     super.initState();
-    final String? currentUserId = _authService.currentUser?.uid;
-    _isLikedByCurrentUser =
-        currentUserId != null && widget.post.likes.contains(currentUserId);
+    _isLikedByCurrentUser = false;
     _likesCount = widget.post.likes.length;
   }
 
@@ -32,6 +29,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final currentUserId = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    ).currentUserId;
+    _isLikedByCurrentUser =
+        currentUserId != null && widget.post.likes.contains(currentUserId);
 
     return Scaffold(
       appBar: AppBar(
@@ -226,7 +229,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _likePost() async {
     try {
-      String? userId = _authService.currentUser?.uid;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
+      String? userId = authProvider.currentUserId;
       if (userId != null) {
         setState(() {
           if (_isLikedByCurrentUser) {
@@ -237,7 +242,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           _isLikedByCurrentUser = !_isLikedByCurrentUser;
         });
 
-        await _postService.likePost(widget.post.id, userId);
+        await postProvider.toggleLike(widget.post.id, userId);
       }
     } catch (e) {
       setState(() {

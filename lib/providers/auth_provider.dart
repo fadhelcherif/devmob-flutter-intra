@@ -14,6 +14,29 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get isAuthenticated => _authService.currentUser != null;
+  String? get currentUserId => _authService.currentUser?.uid;
+
+  Future<UserModel?> getUserById(String uid) {
+    return _authService.getUserData(uid);
+  }
+
+  Future<void> sendPasswordResetEmail(String email) {
+    return _authService.sendPasswordResetEmail(email);
+  }
+
+  Future<UserModel?> registerByAdmin({
+    required String email,
+    required String password,
+    required String name,
+    UserRole role = UserRole.employee,
+  }) {
+    return _authService.registerByAdmin(
+      email: email,
+      password: password,
+      name: name,
+      role: role,
+    );
+  }
 
   Future<void> loadCurrentUser() async {
     final current = _authService.currentUser;

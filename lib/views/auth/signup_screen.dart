@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import '../home/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final AuthService _authService = AuthService();
 
   UserRole _selectedRole = UserRole.employee;
   bool _rememberMe = false;
@@ -35,7 +35,8 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     try {
-      await _authService.sendPasswordResetEmail(email);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.sendPasswordResetEmail(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -108,24 +109,41 @@ class _SignupScreenState extends State<SignupScreen> {
         'Calling register service with email: ${_emailController.text.trim()}',
       );
 
-      final registerAction = widget.adminMode
-          ? _authService.registerByAdmin
-          : _authService.register;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      UserModel? user = await registerAction(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-            name: _nameController.text.trim(),
-            role: _selectedRole,
-          )
-          .timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              throw Exception(
-                'Connection timeout. Please check your internet connection.',
-              );
-            },
-          );
+      final UserModel? user = widget.adminMode
+          ? await authProvider
+                .registerByAdmin(
+                  email: _emailController.text.trim(),
+                  password: _passwordController.text.trim(),
+                  name: _nameController.text.trim(),
+                  role: _selectedRole,
+                )
+                .timeout(
+                  const Duration(seconds: 30),
+                  onTimeout: () {
+                    throw Exception(
+                      'Connection timeout. Please check your internet connection.',
+                    );
+                  },
+                )
+          : (await authProvider
+                .register(
+                  email: _emailController.text.trim(),
+                  password: _passwordController.text.trim(),
+                  name: _nameController.text.trim(),
+                  role: _selectedRole,
+                )
+                .timeout(
+                  const Duration(seconds: 30),
+                  onTimeout: () {
+                    throw Exception(
+                      'Connection timeout. Please check your internet connection.',
+                    );
+                  },
+                ))
+            ? authProvider.user
+            : null;
 
       print('Register result: ${user != null ? "Success" : "Failed"}');
 

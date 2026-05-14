@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
 import 'dart:io';
-import '../../services/storage_service.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/post_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserModel user;
@@ -19,15 +20,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _bioController = TextEditingController();
   final _jobTitleController = TextEditingController();
   final _locationController = TextEditingController();
-  final AuthService _authService = AuthService();
-  final StorageService _storageService = StorageService();
   XFile? _selectedImage;
   bool _isUploadingImage = false;
 
   bool _isLoading = false;
 
   Future<void> _pickProfileImage() async {
-    XFile? image = await _storageService.pickProfileImage();
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    XFile? image = await postProvider.pickImage();
     if (image != null) {
       setState(() {
         _selectedImage = image;
@@ -41,13 +41,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _isUploadingImage = true;
     });
 
-    String? url = await _storageService.uploadProfileImage(image);
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    String? url = await postProvider.uploadImageFile(image, 'profiles');
 
     if (url != null) {
       // Update user profile with new image URL
-      await _authService.updateUserProfile(widget.user.uid, {
-        'profileImageUrl': url,
-      });
+      await authProvider.updateProfile({'profileImageUrl': url});
 
       setState(() {
         _isUploadingImage = false;
@@ -84,7 +84,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      await _authService.updateUserProfile(widget.user.uid, {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.updateProfile({
         'name': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
       });

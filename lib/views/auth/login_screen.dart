@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/auth_service.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
 import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
   bool _rememberMe = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -64,7 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await _authService.sendPasswordResetEmail(email);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.sendPasswordResetEmail(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,7 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       print('Attempting login with email: ${_emailController.text.trim()}');
 
-      UserModel? user = await _authService
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      final bool success = await authProvider
           .login(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
@@ -120,6 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             },
           );
+      final UserModel? user = success ? authProvider.user : null;
 
       print('Login result: ${user != null ? "Success" : "Failed"}');
 

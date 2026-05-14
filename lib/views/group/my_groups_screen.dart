@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/group_model.dart';
-import '../../services/auth_service.dart';
-import '../../services/group_service.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/group_provider.dart';
 import 'mygroup.dart';
 
 class MyGroupsScreen extends StatefulWidget {
@@ -12,12 +13,11 @@ class MyGroupsScreen extends StatefulWidget {
 }
 
 class _MyGroupsScreenState extends State<MyGroupsScreen> {
-  final GroupService _groupService = GroupService();
-  final AuthService _authService = AuthService();
-
   @override
   Widget build(BuildContext context) {
-    final currentUserId = _authService.currentUser?.uid;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +29,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
       body: currentUserId == null
           ? const Center(child: Text('Please sign in to view your groups.'))
           : StreamBuilder<List<GroupModel>>(
-              stream: _groupService.getUserGroups(currentUserId),
+              stream: groupProvider.watchUserGroups(currentUserId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: \\${snapshot.error}'));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import 'post_creation.dart';
 import 'discover.dart';
 import 'post_detail_screen.dart';
@@ -7,8 +8,8 @@ import '../group/group_screen.dart';
 import '../chat/chat_list.dart';
 import '../profile/profile_menu_screen.dart';
 import '../../models/post_model.dart';
-import '../../services/post_service.dart';
-import '../../services/auth_service.dart';
+import '../../providers/post_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -19,8 +20,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final PostService _postService = PostService();
-  final AuthService _authService = AuthService();
   int _selectedIndex = 0;
   Future<void> _editPost(PostModel post) async {
     final TextEditingController editController = TextEditingController(
@@ -48,7 +47,10 @@ class _FeedScreenState extends State<FeedScreen> {
             onPressed: () async {
               if (editController.text.trim().isNotEmpty) {
                 try {
-                  await _postService.editPost(
+                  await Provider.of<PostProvider>(
+                    context,
+                    listen: false,
+                  ).editPost(
                     post.id,
                     editController.text.trim(),
                   );
@@ -96,7 +98,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
     if (confirm == true) {
       try {
-        await _postService.deletePost(post.id);
+        await Provider.of<PostProvider>(context, listen: false).deletePost(
+          post.id,
+        );
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Post deleted')));
@@ -117,9 +121,10 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _loadCurrentUser() async {
-    UserModel? user = await _authService.getUserData(
-      _authService.currentUser!.uid,
-    );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
+    if (currentUserId == null) return;
+    UserModel? user = await authProvider.getUserById(currentUserId);
     setState(() {
       _currentUser = user;
     });
@@ -129,6 +134,13 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    final currentUserId = authProvider.currentUserId;
+
+    if (currentUserId == null) {
+      return const Scaffold(body: Center(child: Text('Please login')));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -170,7 +182,7 @@ class _FeedScreenState extends State<FeedScreen> {
       ),
       drawer: const ProfileMenuScreen(),
       body: StreamBuilder<List<PostModel>>(
-        stream: _postService.getMainFeedPosts(_authService.currentUser!.uid),
+        stream: postProvider.watchMainFeedPosts(currentUserId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -245,8 +257,9 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Widget _buildPost(PostModel post) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final bool isLikedByCurrentUser = post.likes.contains(
-      _authService.currentUser?.uid,
+      authProvider.currentUserId,
     );
 
     return GestureDetector(
@@ -273,7 +286,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 CircleAvatar(
                   radius: 24,
                   backgroundImage: NetworkImage(
-                    post.userId == _authService.currentUser?.uid &&
+                    post.userId == authProvider.currentUserId &&
                             _currentUser?.profileImageUrl != null
                         ? _currentUser!.profileImageUrl!
                         : post.userImage,
@@ -314,7 +327,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                 ),
                 // Show menu only for post creator
-                if (post.userId == _authService.currentUser?.uid)
+                if (post.userId == authProvider.currentUserId)
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') {
@@ -520,9 +533,11 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Future<void> _likePost(PostModel post) async {
     try {
-      String? userId = _authService.currentUser?.uid;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final postProvider = Provider.of<PostProvider>(context, listen: false);
+      String? userId = authProvider.currentUserId;
       if (userId != null) {
-        await _postService.likePost(post.id, userId);
+        await postProvider.toggleLike(post.id, userId);
       }
     } catch (e) {
       ScaffoldMessenger.of(

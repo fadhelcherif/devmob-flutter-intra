@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
 import 'edit_profile.dart';
-import '../../services/post_service.dart';
 import '../../models/post_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/post_provider.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String? userId;
@@ -16,13 +17,12 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  final AuthService _authService = AuthService();
-  final PostService _postService = PostService();
   UserModel? _user;
   bool _isLoading = true;
 
   bool get _isOwnProfile {
-    final currentUid = _authService.currentUser?.uid;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUid = authProvider.currentUserId;
     if (currentUid == null) return false;
     final viewingUid = widget.userId;
     return viewingUid == null || viewingUid == currentUid;
@@ -36,8 +36,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUser() async {
     try {
-      String uid = widget.userId ?? _authService.currentUser!.uid;
-      UserModel? user = await _authService.getUserData(uid);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUid = authProvider.currentUserId;
+      if (widget.userId == null && currentUid == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      String uid = widget.userId ?? currentUid!;
+      UserModel? user = await authProvider.getUserById(uid);
 
       setState(() {
         _user = user;
@@ -217,9 +226,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             // User posts list
             StreamBuilder<List<PostModel>>(
-              stream: _postService.getUserPosts(
-                widget.userId ?? _authService.currentUser!.uid,
-              ),
+              stream: Provider.of<PostProvider>(
+                context,
+                listen: false,
+              ).watchUserPosts(widget.userId ?? _user!.uid),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Padding(
